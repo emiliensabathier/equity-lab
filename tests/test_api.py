@@ -101,15 +101,11 @@ def test_concurrent_cold_requests_run_one_analysis(env):
     assert env["state"]["calls"] == 1
 
 
-def test_upstream_failure_serves_stale_copy(env):
+def test_upstream_failure_serves_stale_copy(env, monkeypatch):
     env["cache"].set("analysis:ACME", ANALYSIS)
-    # Age the entry past the TTL by asking for a zero-TTL view: patch the config TTL.
-    api_mod.config.ANALYSIS_TTL, original = timedelta(0), api_mod.config.ANALYSIS_TTL
-    try:
-        env["state"]["behavior"] = lambda t: (_ for _ in ()).throw(RuntimeError("secret boom"))
-        res = env["client"].get("/api/analysis/ACME")
-    finally:
-        api_mod.config.ANALYSIS_TTL = original
+    monkeypatch.setattr(api_mod.config, "ANALYSIS_TTL", timedelta(0))
+    env["state"]["behavior"] = lambda t: (_ for _ in ()).throw(RuntimeError("secret boom"))
+    res = env["client"].get("/api/analysis/ACME")
     assert res.status_code == 200
     assert res.json() == {**ANALYSIS, "stale": True}
     assert "secret boom" not in res.text
@@ -255,3 +251,66 @@ def test_limiter_slides_and_isolates_keys():
     assert limiter.try_acquire("b")
     now[0] = 10.0
     assert limiter.try_acquire("a")
+
+
+def test_cold_limit_exceeded_serves_stale_copy_instead_of_429(env, monkeypatch):
+    for i in range(10):
+        env["client"].get(f"/api/analysis/T{i}")
+    env["cache"].set("analysis:OLD", ANALYSIS)
+    monkeypatch.setattr(api_mod.config, "ANALYSIS_TTL", timedelta(0))
+    res = env["client"].get("/api/analysis/OLD")
+    assert res.status_code == 200
+    assert res.json() == {**ANALYSIS, "stale": True}
+
+
+def test_trailing_newline_ticker_is_422(env):
+    assert env["client"].get("/api/analysis/AAPL%0A").status_code == 422
+
+
+def test_cache_write_failure_still_returns_result(env, monkeypatch):
+    def broken_set(key, value):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(env["cache"], "set", broken_set)
+    res = env["client"].get("/api/analysis/ACME")
+    assert res.status_code == 200
+    assert res.json()["stale"] is False
+
+
+def test_narrative_worker_failure_is_unavailable_shape(env):
+    env["cache"].set("analysis:ACME", ANALYSIS)
+
+    def boom(analysis):
+        raise RuntimeError("worker broke")
+
+    env["worker"].request = boom
+    res = env["client"].get("/api/analysis/ACME/narrative")
+    assert res.json() == {"status": "unavailable"}
+
+
+def test_unexpected_error_is_503_json(env, monkeypatch):
+    def boom(key, max_age):
+        raise RuntimeError("db gone")
+
+    monkeypatch.setattr(env["cache"], "get", boom)
+    client = TestClient(env["client"].app, raise_server_exceptions=False)
+    res = client.get("/api/analysis/ACME")
+    assert res.status_code == 503
+    assert "db gone" not in res.text
+
+
+def test_ipv4_mapped_loopback_trusts_forwarded_for():
+    class Req:
+        client = type("C", (), {"host": "::ffff:127.0.0.1"})()
+        headers = {"x-forwarded-for": "203.0.113.7"}
+
+    assert api_mod.client_ip(Req()) == "203.0.113.7"
+
+
+def test_limiter_evicts_idle_keys():
+    now = [0.0]
+    limiter = SlidingWindowLimiter(2, timedelta(seconds=10), lambda: now[0])
+    limiter.try_acquire("a")
+    now[0] = 20.0
+    limiter.try_acquire("b")
+    assert "a" not in limiter._hits

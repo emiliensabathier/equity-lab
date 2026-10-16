@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 
 RATE_LIMIT_MESSAGE = "Too many new analyses from this address; cached companies stay available."
 UNAVAILABLE_MESSAGE = "Data source unavailable, try again in a minute."
-LOOPBACK = frozenset({"127.0.0.1", "::1"})
+LOOPBACK = frozenset({"127.0.0.1", "::1", "::ffff:127.0.0.1"})
 _TICKER = re.compile(config.TICKER_PATTERN)
 
 
@@ -51,9 +51,14 @@ class SlidingWindowLimiter:
         """Record a hit and return True, or return False (recording nothing) when over budget."""
         now = self._clock()
         with self._lock:
+            # Sweep every key so idle addresses do not accumulate for the life of the process.
+            for k in list(self._hits):
+                window = self._hits[k]
+                while window and now - window[0] >= self._window:
+                    window.popleft()
+                if not window:
+                    del self._hits[k]
             hits = self._hits[key]
-            while hits and now - hits[0] >= self._window:
-                hits.popleft()
             if len(hits) >= self._limit:
                 return False
             hits.append(now)
@@ -93,7 +98,7 @@ def create_app(
 
     def normalize(raw: str) -> str:
         ticker = raw.upper()
-        if not _TICKER.match(ticker):
+        if not _TICKER.fullmatch(ticker):
             raise HTTPException(422, "Invalid ticker.")
         return ticker
 
@@ -123,10 +128,12 @@ def create_app(
             if fresh is not None:
                 return {**fresh[0], "stale": False}
             if not cold_limiter.try_acquire(client_ip(request)):
+                stale = cache.get(key, None)
+                if stale is not None:
+                    return {**stale[0], "stale": True}
                 raise HTTPException(429, RATE_LIMIT_MESSAGE)
             try:
                 result = analyze(ticker, fetchers=fetchers, cache_dir=cache_dir)
-                cache.set(key, result)
             except UnknownTicker:
                 raise HTTPException(404, "Unknown ticker.") from None
             except Exception:
@@ -135,6 +142,10 @@ def create_app(
                 if stale is None:
                     raise HTTPException(503, UNAVAILABLE_MESSAGE) from None
                 return {**stale[0], "stale": True}
+            try:
+                cache.set(key, result)
+            except Exception:
+                log.exception("cache write failed for %s", ticker)
             return {**result, "stale": False}
 
     @app.get("/api/analysis/{ticker}/narrative")
@@ -144,14 +155,22 @@ def create_app(
         if cached is None:
             raise HTTPException(404, "No analysis for this ticker yet.")
         analysis = cached[0]
-        if worker.get(analysis) is None and not worker.is_inflight(analysis):
-            # Only a brand-new job costs a Claude call; polling a pending one is free.
-            if not narrative_limiter.try_acquire(client_ip(request)):
-                raise HTTPException(429, RATE_LIMIT_MESSAGE)
-        status = worker.request(analysis)
-        if status == "ready":
-            ready = worker.get(analysis) or {}
-            return {"status": "ready", "text": ready.get("text", "")}
+        try:
+            is_new = worker.get(analysis) is None and not worker.is_inflight(analysis)
+        except Exception:
+            log.exception("narrative lookup failed for %s", ticker)
+            return {"status": "unavailable"}
+        # Only a brand-new job costs a Claude call; polling a pending one is free.
+        if is_new and not narrative_limiter.try_acquire(client_ip(request)):
+            raise HTTPException(429, RATE_LIMIT_MESSAGE)
+        try:
+            status = worker.request(analysis)
+            if status == "ready":
+                ready = worker.get(analysis) or {}
+                return {"status": "ready", "text": ready.get("text", "")}
+        except Exception:
+            log.exception("narrative request failed for %s", ticker)
+            return {"status": "unavailable"}
         return {"status": status}
 
     @app.get("/", include_in_schema=False)
