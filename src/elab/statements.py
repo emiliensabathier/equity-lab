@@ -33,12 +33,12 @@ def limit_sentence(line: str) -> str:
 def fill_defaults(s: Statements) -> tuple[Statements, tuple[str, ...]]:
     """Return statements with missing defaultable lines set to zero, plus the lines filled.
 
-    Inputs are never modified. A core line that is absent raises ``MissingCoreLine``; an
+    Inputs are never modified. A core line that is absent or all-NaN raises ``MissingCoreLine``; an
     all-NaN defaultable row counts as absent, since vlab would otherwise drop every year.
     """
     for name in _FRAMES:
         for line in CORE_LINES[name]:
-            if line not in getattr(s, name).index:
+            if _is_missing(getattr(s, name), line):
                 raise MissingCoreLine(line)
 
     frames: dict[str, pd.DataFrame] = {}
@@ -52,4 +52,4 @@ def fill_defaults(s: Statements) -> tuple[Statements, tuple[str, ...]]:
             frame = pd.concat([frame.drop(index=line, errors="ignore"), zero])
             filled.append(line)
         frames[name] = frame
-    return replace(s, **frames), tuple(filled)
+    return replace(s, **frames, info=dict(s.info)), tuple(filled)

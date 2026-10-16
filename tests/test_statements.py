@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 from vlab.fundamentals import drivers_from
 
@@ -22,8 +23,17 @@ def test_fill_defaults_adds_zero_rows_for_missing_defaultable_lines():
 def test_fill_defaults_leaves_input_unmodified():
     s = make_statements()
     s = make_statements(balance=s.balance.drop(index="Inventory"))
+    before = s.balance.copy()
     fill_defaults(s)
+    pd.testing.assert_frame_equal(s.balance, before)
     assert "Inventory" not in s.balance.index
+
+
+def test_fill_defaults_does_not_share_info_dict():
+    s = make_statements()
+    filled, _ = fill_defaults(s)
+    assert filled.info == s.info
+    assert filled.info is not s.info
 
 
 def test_fill_defaults_raises_on_missing_core_line():
@@ -31,6 +41,14 @@ def test_fill_defaults_raises_on_missing_core_line():
     s = make_statements(income=s.income.drop(index="EBIT"))
     with pytest.raises(MissingCoreLine) as err:
         fill_defaults(s)
+    assert err.value.line == "EBIT"
+
+
+def test_fill_defaults_raises_on_all_nan_core_line():
+    income = make_statements().income.copy()
+    income.loc["EBIT"] = np.nan
+    with pytest.raises(MissingCoreLine) as err:
+        fill_defaults(make_statements(income=income))
     assert err.value.line == "EBIT"
 
 
