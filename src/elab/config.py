@@ -30,3 +30,30 @@ DEFAULTABLE_LINES: dict[str, tuple[str, ...]] = {
         "Accounts Payable",
     ),
 }
+
+US_EXCHANGES = frozenset({"NMS", "NYQ", "NGM", "NCM", "ASE", "BTS", "PCX"})
+
+# Benchmark per listing suffix ("" = US). Each symbol was checked to return weekly closes from
+# yfinance; OBX.OL returned none and is left to the fallback.
+INDEX_BY_SUFFIX: dict[str, str] = {
+    "": "^GSPC",
+    ".PA": "^FCHI",
+    ".DE": "^GDAXI",
+    ".L": "^FTSE",
+    ".SW": "^SSMI",
+    ".AS": "^AEX",
+    ".MC": "^IBEX",
+    ".MI": "FTSEMIB.MI",
+    ".ST": "^OMX",
+    ".BR": "^BFX",
+    ".CO": "^OMXC25",
+    ".HE": "^OMXH25",
+    ".LS": "PSI20.LS",
+    ".VI": "^ATX",
+    ".IR": "^ISEQ",
+}
+FALLBACK_INDEX = "^STOXX"
+
+EXCLUDED_SECTORS = frozenset({"Financial Services", "Real Estate"})
+
+TICKER_PATTERN = r"^[A-Z0-9][A-Z0-9.\-]{0,14}$"
