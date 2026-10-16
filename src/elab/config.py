@@ -9,6 +9,7 @@ surfaced in the page's limits instead of being hidden.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 
 CORE_LINES: dict[str, tuple[str, ...]] = {
     "income": ("Total Revenue", "EBIT", "Pretax Income", "Tax Provision"),
@@ -107,3 +108,6 @@ PEER_TABLE_FILE = "peers.parquet"
 PEER_REFRESH_DAYS = 7
 MIN_PEERS = 4
 MAX_PEERS = 8
+
+# Analyses are re-fetched after a day; narratives never expire because their key is the content.
+ANALYSIS_TTL = timedelta(hours=24)
