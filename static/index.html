@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>equity-lab</title>
+<meta name="description" content="Type any US or European listed company and read what its share price implies, on one page.">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>equity-lab</h1>
+  <p class="tag">What does the share price already assume? Search a US or European listed company.</p>
+  <div class="search">
+    <label for="search">Company name or ticker</label>
+    <input id="search" type="search" autocomplete="off" role="combobox" aria-expanded="false"
+           aria-controls="matches" aria-autocomplete="list" placeholder="e.g. LVMH, Apple, SAP">
+    <ul id="matches" role="listbox" hidden></ul>
+  </div>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+</header>
+<main id="report" hidden></main>
+<footer id="footer" class="foot"></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
