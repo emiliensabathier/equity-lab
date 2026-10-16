@@ -22,7 +22,8 @@ from elab.config import (
 
 MAX_MATCHES = 8
 MIN_QUERY, MAX_QUERY = 2, 60
-PENCE = "GBp"
+PENCE_CODES = frozenset({"GBp", "GBX"})
+SUBUNIT_CODES = frozenset({"ZAc", "ILA"})
 
 
 class UnknownTicker(DataError):
@@ -71,7 +72,7 @@ def search(
         exchange = quote.get("exchange") or ""
         if quote.get("quoteType") != "EQUITY" or not symbol:
             continue
-        if exchange not in US_EXCHANGES and _suffix(symbol) not in INDEX_BY_SUFFIX:
+        if exchange not in US_EXCHANGES and (_suffix(symbol) or None) not in INDEX_BY_SUFFIX:
             continue
         name = quote.get("longname") or quote.get("shortname") or symbol
         matches.append(Match(symbol, name, exchange))
@@ -87,12 +88,21 @@ def company_from_info(ticker: str, info: dict) -> CompanyMeta:
     trading = info.get("currency") or ""
     if not trading:
         raise UnknownTicker(f"{ticker} has no trading currency")
-    price_scale = 1.0
-    if trading == PENCE:
-        trading, price_scale = "GBP", 0.01
     reporting = info.get("financialCurrency") or trading
-    if reporting == PENCE:
+    if {trading, reporting} & SUBUNIT_CODES:
+        raise UnknownTicker(f"{ticker} is quoted in a sub-unit currency we do not convert")
+    price_scale = 1.0
+    if trading in PENCE_CODES:
+        trading, price_scale = "GBP", 0.01
+    if reporting in PENCE_CODES:
         reporting = "GBP"
+    exchange = info.get("exchange") or ""
+    # A US exchange wins over dots in the symbol (BRK.B, BRK-B); otherwise the last suffix.
+    market_index = (
+        INDEX_BY_SUFFIX[""]
+        if exchange in US_EXCHANGES
+        else INDEX_BY_SUFFIX.get(_suffix(ticker) or None, FALLBACK_INDEX)
+    )
     sector = info.get("sector") or ""
     excluded = (
         f"{sector} companies are not covered: a free-cash-flow DCF does not apply "
@@ -105,10 +115,10 @@ def company_from_info(ticker: str, info: dict) -> CompanyMeta:
     )
     return CompanyMeta(
         company=company,
-        exchange=info.get("exchange") or "",
+        exchange=exchange,
         sector=sector,
         industry=info.get("industry") or "",
-        market_index=INDEX_BY_SUFFIX.get(_suffix(ticker), FALLBACK_INDEX),
+        market_index=market_index,
         price_scale=price_scale,
         excluded_reason=excluded,
     )

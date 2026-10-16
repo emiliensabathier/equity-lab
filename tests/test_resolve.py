@@ -84,3 +84,35 @@ def test_non_equity_or_empty_info_raises_unknown_ticker(info):
     with pytest.raises(UnknownTicker) as exc:
         company_from_info("ZZZ", info)
     assert isinstance(exc.value, DataError)
+
+
+def test_search_drops_dotless_equity_on_non_us_exchange():
+    quotes = [_quote("NSRGY", "PNK"), _quote("NSRGF", "OQB"), _quote("NSRGY", "NYQ")]
+    assert [m.exchange for m in search("nestle", lambda q: quotes)] == ["NYQ"]
+
+
+def test_gbx_is_pence_for_trading_and_reporting():
+    info = {"quoteType": "EQUITY", "longName": "X", "currency": "GBX",
+            "financialCurrency": "GBX", "exchange": "LSE"}
+    meta = company_from_info("X.L", info)
+    assert (meta.company.trading_currency, meta.company.reporting_currency) == ("GBP", "GBP")
+    assert meta.price_scale == 0.01
+
+
+@pytest.mark.parametrize("code", ["ZAc", "ILA"])
+def test_other_subunit_currencies_are_refused(code):
+    info = {"quoteType": "EQUITY", "longName": "X", "currency": code}
+    with pytest.raises(UnknownTicker):
+        company_from_info("X.JO", info)
+
+
+def test_us_exchange_wins_over_dots_in_ticker():
+    info = {"quoteType": "EQUITY", "longName": "Berkshire", "currency": "USD",
+            "exchange": "NYQ"}
+    assert company_from_info("BRK-B", info).market_index == "^GSPC"
+    assert company_from_info("BRK.B", info).market_index == "^GSPC"
+
+
+def test_multi_dot_ticker_uses_last_suffix():
+    info = {"quoteType": "EQUITY", "longName": "X", "currency": "GBP", "exchange": "LSE"}
+    assert company_from_info("A.B.L", info).market_index == "^FTSE"
