@@ -180,6 +180,8 @@ def test_analyze_pence_listing_scales_price(tmp_path):
 
     assert got["price"] == pytest.approx(25.0)
     assert got["trading_currency"] == "GBP"
+    assert got["dcf"]["status"] == "ok"
+    assert got["verdict"].startswith("At 25.00 GBP")
     assert got["dcf"]["beta_index"] == "^FTSE"
 
 
@@ -266,3 +268,50 @@ def test_analyze_statements_failure_marks_both_sections_unavailable(tmp_path):
     assert got["dcf"]["status"] == got["health"]["status"] == "unavailable"
     assert "no financial statements" in got["dcf"]["reason"]
     assert len(got["limits"]) == 2
+
+
+def _with_unreported_year(base):
+    """A fifth, older column as yfinance often returns it: other lines present, no revenue."""
+    extra = pd.Timestamp("2021-12-31")
+
+    def widen(frame: pd.DataFrame) -> pd.DataFrame:
+        wider = frame.copy()
+        wider[extra] = frame.iloc[:, -1]
+        return wider
+
+    income = widen(base.income)
+    income.loc["Total Revenue", extra] = np.nan
+    return make_statements(
+        income=income, cashflow=widen(base.cashflow), balance=widen(base.balance)
+    )
+
+
+def test_analyze_driver_window_ignores_year_without_revenue(tmp_path):
+    statements = _with_unreported_year(make_statements())
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["limits"][-1] == (
+        "Normalized drivers are medians over the reported years (2022–2025)."
+    )
+
+
+def test_analyze_health_has_no_phantom_year_without_revenue(tmp_path):
+    statements = _with_unreported_year(make_statements())
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    years = [year["fiscal_year"] for year in got["health"]["years"]]
+    assert years == ["2022-12-31", "2023-12-31", "2024-12-31", "2025-12-31"]
+
+
+def test_analyze_lists_lease_default_health_relies_on_when_dcf_fails(tmp_path):
+    base = make_statements()
+    statements = make_statements(
+        income=_drop(base.income, "Tax Provision"),
+        balance=_drop(base.balance, "Capital Lease Obligations"),
+    )
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "unavailable"
+    assert got["health"]["status"] == "ok"
+    assert got["limits"][0] == "Capital Lease Obligations not reported: treated as zero."
+    assert got["limits"].count("Capital Lease Obligations not reported: treated as zero.") == 1

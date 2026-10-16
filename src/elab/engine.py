@@ -139,8 +139,22 @@ def _line(frame: pd.DataFrame, line: str, *, default: float | None = None) -> pd
     return pd.Series(default, index=frame.columns)
 
 
+# Lines the health section reads but can do without, defaulted to zero like fill_defaults does.
+_HEALTH_DEFAULTED = (("balance", "Capital Lease Obligations"),)
+
+
+def _health_defaults(s: Statements) -> tuple[str, ...]:
+    """The defaultable lines health treats as zero, so limits name them even if the DCF fails."""
+    return tuple(line for name, line in _HEALTH_DEFAULTED if line not in getattr(s, name).index)
+
+
+def _reported_revenue(income: pd.DataFrame) -> pd.Series:
+    """Revenue for the years actually reported; yfinance often adds a column with none."""
+    return _line(income, "Total Revenue").dropna()
+
+
 def _health_years(s: Statements) -> list[dict]:
-    revenue = _line(s.income, "Total Revenue")
+    revenue = _reported_revenue(s.income)
     ebit = _line(s.income, "EBIT")
     fcf = _line(s.cashflow, "Operating Cash Flow") + _line(s.cashflow, "Capital Expenditure")
     ebitda = ebit + _line(s.cashflow, "Depreciation And Amortization")
@@ -168,6 +182,13 @@ def _unavailable(exc: Exception) -> dict:
     return {"status": "unavailable", "reason": str(exc)}
 
 
+def _window(income: pd.DataFrame | None) -> list[int]:
+    """Years behind the normalized drivers: those with revenue, as in drivers.fiscal_years."""
+    if income is None or "Total Revenue" not in income.index:
+        return []
+    return sorted(pd.Timestamp(year).year for year in _reported_revenue(income).index)
+
+
 def _limits(
     meta: CompanyMeta, filled: tuple[str, ...], income: pd.DataFrame | None
 ) -> list[str]:
@@ -184,8 +205,8 @@ def _limits(
         rf_sentence,
         f"Beta regressed on weekly returns against {meta.market_index} over five years.",
     ]
-    if income is not None and len(income.columns):
-        years = sorted(pd.Timestamp(column).year for column in income.columns)
+    years = _window(income)
+    if years:
         limits.append(
             f"Normalized drivers are medians over the reported years ({years[0]}–{years[-1]})."
         )
@@ -216,13 +237,14 @@ def _header(ticker: str, meta: CompanyMeta) -> dict:
 
 
 def _sections(
-    meta: CompanyMeta, prices: pd.DataFrame, fetchers: Fetchers, cache_dir: Path
+    meta: CompanyMeta, raw: Statements, prices: pd.DataFrame, fetchers: Fetchers,
+    cache_dir: Path,
 ) -> tuple[dict, dict, list[str]]:
     """The DCF and health sections plus the limits, each failure contained in its section."""
-    ticker = meta.company.ticker
-    raw = load_statements(ticker, cache_dir=cache_dir, fetcher=fetchers.statements)
+    health_filled: tuple[str, ...] = ()
     try:
         health = {"status": "ok", "years": _health_years(raw)}
+        health_filled = _health_defaults(raw)
     except (DataError, ValuationError) as exc:
         health = _unavailable(exc)
     filled: tuple[str, ...] = ()
@@ -232,7 +254,8 @@ def _sections(
                            meta.market_index)
     except (DataError, ValuationError) as exc:
         dcf = _unavailable(exc)
-    return dcf, health, _limits(meta, filled, raw.income)
+    defaulted = filled + tuple(line for line in health_filled if line not in filled)
+    return dcf, health, _limits(meta, defaulted, raw.income)
 
 
 def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
@@ -247,10 +270,12 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
     prices = prices * meta.price_scale
     price = float(prices[ticker].iloc[-1])
     try:
-        dcf, health, limits = _sections(meta, prices, fetchers, cache_dir)
-    except DataError as exc:  # statements could not be loaded at all
+        raw = load_statements(ticker, cache_dir=cache_dir, fetcher=fetchers.statements)
+    except DataError as exc:  # no statements at all: neither section can be computed
         dcf = health = _unavailable(exc)
         limits = _limits(meta, (), None)
+    else:
+        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir)
     full = dcf["status"] == "ok" and health["status"] == "ok"
     return {
         **header,
