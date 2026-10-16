@@ -1,0 +1,8 @@
+.superpowers/
+cache/
+*.sqlite
+.env
+__pycache__/
+*.egg-info/
+.venv/
+.coverage
