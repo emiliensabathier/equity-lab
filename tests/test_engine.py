@@ -1,0 +1,268 @@
+"""The engine end to end, on hand-built statements and synthetic weekly prices (no network)."""
+
+from __future__ import annotations
+
+import json
+
+import numpy as np
+import pandas as pd
+import pytest
+from vlab.wacc import EQUITY_RISK_PREMIUM
+
+from elab.config import RISK_FREE
+from elab.engine import Fetchers, analyze
+from elab.resolve import UnknownTicker
+from tests.conftest import make_statements
+
+WEEKS = pd.date_range(end="2026-10-16", periods=260, freq="W-FRI")
+LAST_PRICE = 20.0
+
+
+def _series(seed: int, last: float) -> pd.Series:
+    rng = np.random.default_rng(seed)
+    market = rng.normal(0.001, 0.02, len(WEEKS))
+    own = 1.2 * market + rng.normal(0.0, 0.01, len(WEEKS))
+    path = np.cumprod(1.0 + own)
+    return pd.Series(path / path[-1] * last, index=WEEKS)
+
+
+def _index_series() -> pd.Series:
+    rng = np.random.default_rng(7)
+    market = rng.normal(0.001, 0.02, len(WEEKS))
+    return pd.Series(np.cumprod(1.0 + market) * 4000.0, index=WEEKS)
+
+
+def _info(**overrides: object) -> dict:
+    info = {
+        "quoteType": "EQUITY",
+        "currency": "EUR",
+        "financialCurrency": "EUR",
+        "exchange": "PAR",
+        "longName": "Acme SA",
+        "sector": "Industrials",
+        "industry": "Machinery",
+    }
+    info.update(overrides)
+    return info
+
+
+def _fetchers(
+    *, info: dict | None = None, statements=None, last_price: float = LAST_PRICE
+) -> Fetchers:
+    stock = _series(7, last_price)
+    index = _index_series()
+
+    def prices(tickers: list[str], period: str, interval: str) -> pd.DataFrame:
+        columns = {}
+        for ticker in tickers:
+            if ticker.endswith("=X"):
+                columns[ticker] = pd.Series(1.1, index=WEEKS)
+            else:
+                columns[ticker] = index if ticker.startswith("^") else stock
+        return pd.DataFrame(columns)
+
+    return Fetchers(
+        statements=lambda ticker: statements if statements is not None else make_statements(),
+        prices=prices,
+        info=lambda ticker: info if info is not None else _info(),
+    )
+
+
+def _drop(frame: pd.DataFrame, line: str) -> pd.DataFrame:
+    return frame.drop(index=line)
+
+
+def test_analyze_full_coverage_returns_verdict_and_sections(tmp_path):
+    got = analyze("ACME.PA", fetchers=_fetchers(), cache_dir=tmp_path)
+
+    assert got["coverage"] == "full"
+    assert got["name"] == "Acme SA"
+    assert got["reporting_currency"] == got["trading_currency"] == "EUR"
+    assert got["price"] == pytest.approx(LAST_PRICE)
+    assert got["price_date"] == "2026-10-16"
+    dcf = got["dcf"]
+    assert dcf["status"] == "ok"
+    assert dcf["beta_index"] == "^FCHI"
+    assert set(dcf["implied_average_growth_at_lower_wacc"]) == {"0.01", "0.02"}
+    assert dcf["fiscal_years"][-1] == "2025-12-31"
+    assert len(dcf["sensitivity"]["rows"]) == 5
+    assert len(dcf["sensitivity"]["values"]) == 5
+    assert len(dcf["margin_sensitivity"]["cols"]) == 5
+    assert got["verdict"] == (
+        f"At {LAST_PRICE:,.2f} EUR, the market prices {dcf['implied_average_growth']:.1%} "
+        f"average revenue growth over five years; the company's normalized history is "
+        f"{dcf['normalized_growth']:.1%}."
+    )
+    health = got["health"]
+    assert health["status"] == "ok"
+    latest = health["years"][-1]
+    assert latest["fiscal_year"] == "2025-12-31"
+    assert latest["revenue"] == 1000.0
+    assert latest["ebit_margin"] == pytest.approx(0.2)
+    assert latest["fcf"] == pytest.approx(230.0 - 60.0)
+    assert latest["net_debt_to_ebitda"] == pytest.approx((300.0 - 80.0 - 120.0) / 250.0)
+    assert got["multiples"] == {"status": "unavailable", "reason": "peer table not built yet"}
+    assert got["limits"] == [
+        f"Equity risk premium fixed at 5%; risk-free rate {RISK_FREE['EUR']:.2%} for EUR "
+        "(as of 2026-10-16).",
+        "Beta regressed on weekly returns against ^FCHI over five years.",
+        "Normalized drivers are medians over the reported years (2022–2025).",
+    ]
+
+
+def test_analyze_bank_is_not_covered_without_fetching_statements(tmp_path):
+    def boom(*args, **kwargs):
+        raise AssertionError("must not fetch")
+
+    fetchers = Fetchers(
+        statements=boom, prices=boom, info=lambda t: _info(sector="Financial Services")
+    )
+    got = analyze("BNP.PA", fetchers=fetchers, cache_dir=tmp_path)
+
+    assert got["coverage"] == "not_covered"
+    assert got["verdict"] is None
+    assert "dcf" not in got and "health" not in got
+    assert got["limits"] == [
+        "Financial Services companies are not covered: a free-cash-flow DCF does not apply "
+        "to balance-sheet businesses."
+    ]
+
+
+def test_analyze_unknown_ticker_propagates(tmp_path):
+    fetchers = _fetchers(info={"quoteType": "ETF", "currency": "USD"})
+    with pytest.raises(UnknownTicker):
+        analyze("SPY", fetchers=fetchers, cache_dir=tmp_path)
+
+
+def test_analyze_missing_core_line_marks_dcf_unavailable_keeps_health(tmp_path):
+    base = make_statements()
+    statements = make_statements(income=_drop(base.income, "Tax Provision"))
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["coverage"] == "partial"
+    assert got["verdict"] is None
+    assert got["dcf"]["status"] == "unavailable"
+    assert "Tax Provision" in got["dcf"]["reason"]
+    assert got["health"]["status"] == "ok"
+    assert len(got["health"]["years"]) == 4
+
+
+def test_analyze_missing_operating_cash_flow_marks_health_unavailable(tmp_path):
+    base = make_statements()
+    statements = make_statements(cashflow=_drop(base.cashflow, "Operating Cash Flow"))
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["health"]["status"] == "unavailable"
+    assert "Operating Cash Flow" in got["health"]["reason"]
+    assert got["dcf"]["status"] == "ok"
+    assert got["coverage"] == "partial"
+
+
+def test_analyze_lists_defaulted_lines_in_limits(tmp_path):
+    base = make_statements()
+    balance = _drop(_drop(base.balance, "Minority Interest"), "Inventory")
+    statements = make_statements(balance=balance)
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["limits"][:2] == [
+        "Minority Interest not reported: treated as zero.",
+        "Inventory not reported: treated as zero.",
+    ]
+    assert got["limits"][2].startswith("Equity risk premium fixed at 5%")
+    assert got["dcf"]["status"] == "ok"
+
+
+def test_analyze_pence_listing_scales_price(tmp_path):
+    info = _info(currency="GBp", financialCurrency="GBP", exchange="LSE")
+    got = analyze(
+        "ACME.L", fetchers=_fetchers(info=info, last_price=2500.0), cache_dir=tmp_path
+    )
+
+    assert got["price"] == pytest.approx(25.0)
+    assert got["trading_currency"] == "GBP"
+    assert got["dcf"]["beta_index"] == "^FTSE"
+
+
+def test_analyze_implied_growth_outside_bracket_is_unavailable_not_raised(tmp_path):
+    got = analyze("ACME.PA", fetchers=_fetchers(last_price=1e6), cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "unavailable"
+    assert "reproduces a price" in got["dcf"]["reason"]
+    assert got["verdict"] is None
+    assert got["health"]["status"] == "ok"
+
+
+def test_analyze_uses_risk_free_of_reporting_currency(tmp_path):
+    # Trades in USD, reports in EUR: the euro rate applies, since the cash flows are in euros.
+    info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
+    got = analyze("ACME", fetchers=_fetchers(info=info), cache_dir=tmp_path)
+
+    dcf = got["dcf"]
+    assert dcf["status"] == "ok"
+    assert dcf["beta_index"] == "^GSPC"
+    assert dcf["cost_of_equity"] == pytest.approx(
+        RISK_FREE["EUR"] + dcf["beta"] * EQUITY_RISK_PREMIUM
+    )
+
+
+def test_analyze_unknown_currency_marks_dcf_unavailable(tmp_path):
+    info = _info(currency="PLN", financialCurrency="PLN", exchange="WSE")
+    got = analyze("ACME.WA", fetchers=_fetchers(info=info), cache_dir=tmp_path)
+
+    assert got["dcf"] == {
+        "status": "unavailable",
+        "reason": "no risk-free rate configured for PLN",
+    }
+    assert got["health"]["status"] == "ok"
+    assert got["limits"][0] == "No risk-free rate configured for PLN."
+
+
+def test_analyze_does_not_mutate_fetched_statements(tmp_path):
+    statements = make_statements()
+    before = statements.balance.copy()
+    analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+    pd.testing.assert_frame_equal(statements.balance, before)
+
+
+def test_analysis_json_is_serializable(tmp_path):
+    base = make_statements()
+    income = base.income.copy()
+    income.loc["EBIT", income.columns[-1]] = np.nan
+    cashflow = base.cashflow.copy()
+    cashflow.loc["Depreciation And Amortization", cashflow.columns[0]] = -500.0
+    statements = make_statements(income=income, cashflow=cashflow)
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    text = json.dumps(got, allow_nan=False)
+    years = json.loads(text)["health"]["years"]
+    assert years[0]["ebit_margin"] is None
+    assert years[-1]["net_debt_to_ebitda"] is None
+
+
+def test_clean_replaces_nan_and_infinities_recursively():
+    from elab.engine import _clean
+
+    got = _clean({"a": [np.nan, 1.0, (np.inf,)], "b": {"c": -np.inf}})
+    assert got == {"a": [None, 1.0, [None]], "b": {"c": None}}
+
+
+def test_analyze_stock_price_failure_propagates(tmp_path):
+    from vlab.errors import DataError
+
+    def no_prices(tickers, period, interval):
+        return pd.DataFrame()
+
+    fetchers = Fetchers(statements=lambda t: make_statements(), prices=no_prices,
+                        info=lambda t: _info())
+    with pytest.raises(DataError):
+        analyze("ACME.PA", fetchers=fetchers, cache_dir=tmp_path)
+
+
+def test_analyze_statements_failure_marks_both_sections_unavailable(tmp_path):
+    empty = make_statements(income=pd.DataFrame())
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=empty), cache_dir=tmp_path)
+
+    assert got["coverage"] == "partial"
+    assert got["dcf"]["status"] == got["health"]["status"] == "unavailable"
+    assert "no financial statements" in got["dcf"]["reason"]
+    assert len(got["limits"]) == 2

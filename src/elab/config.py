@@ -57,3 +57,18 @@ FALLBACK_INDEX = "^STOXX"
 EXCLUDED_SECTORS = frozenset({"Financial Services", "Real Estate"})
 
 TICKER_PATTERN = r"^[A-Z0-9][A-Z0-9.\-]{0,14}$"
+
+# 10-year government bond yields by reporting currency (EUR = German Bund), the risk-free rate
+# each company is discounted at. Source: tradingeconomics.com/bonds, closes of 2026-10-16;
+# the USD figure matches the US Treasury daily par yield curve (5.09%) for the same date.
+# Assumptions, not measurements: the page states the rate and its date in the limits.
+RISK_FREE: dict[str, float] = {
+    "USD": 0.0509,
+    "EUR": 0.0342,
+    "GBP": 0.0538,
+    "CHF": 0.0055,
+    "SEK": 0.0317,
+    "DKK": 0.0322,
+    "NOK": 0.0456,
+}
+RISK_FREE_DATE = "2026-10-16"
