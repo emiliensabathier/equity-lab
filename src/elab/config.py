@@ -111,3 +111,9 @@ MAX_PEERS = 8
 
 # Analyses are re-fetched after a day; narratives never expire because their key is the content.
 ANALYSIS_TTL = timedelta(hours=24)
+
+# Per-client-IP budgets per sliding hour: only work that costs us something is counted
+# (a cache miss that triggers a fresh analysis, a new narrative job), never cached reads.
+COLD_ANALYSES_PER_HOUR = 10
+NARRATIVE_JOBS_PER_HOUR = 5
+RATE_WINDOW = timedelta(hours=1)

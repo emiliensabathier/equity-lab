@@ -172,6 +172,11 @@ class NarrativeWorker:
             self._inflight.add(digest)
         return "pending"
 
+    def is_inflight(self, analysis: dict) -> bool:
+        """Whether a job for this content is queued or running (new job vs. a poll)."""
+        with self._lock:
+            return payload_hash(analysis) in self._inflight
+
     def drain(self) -> None:
         """Block until every queued job is finished (for tests)."""
         self._queue.join()

@@ -263,3 +263,19 @@ def test_bad_payload_stores_unavailable(tmp_path, monkeypatch):
     worker.drain()
     assert worker.get(ANALYSIS) == {"status": "unavailable"}
     assert worker.request(ANALYSIS) == "unavailable"
+
+
+def test_is_inflight_true_while_job_runs_then_false(tmp_path):
+    gate = threading.Event()
+
+    def runner(prompt):
+        gate.wait(5)
+        return GOOD
+
+    worker = make_worker(tmp_path, runner)
+    assert worker.is_inflight(ANALYSIS) is False
+    worker.request(ANALYSIS)
+    assert worker.is_inflight(ANALYSIS) is True
+    gate.set()
+    worker.drain()
+    assert worker.is_inflight(ANALYSIS) is False
