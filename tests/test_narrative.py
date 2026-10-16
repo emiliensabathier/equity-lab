@@ -64,9 +64,11 @@ def test_check_text_rejects_forbidden_word(word):
 
 
 def test_check_text_does_not_flag_substrings():
-    assert check_text("The buyout and targeted... retargetable", ANALYSIS) == [
-        "forbidden word: targeted"
-    ]
+    assert check_text("The buyout, targeted and retargetable.", ANALYSIS) == []
+
+
+def test_check_text_rejects_overvaluation():
+    assert any("forbidden" in v for v in check_text("An overvaluation signal.", ANALYSIS))
 
 
 GOOD = "Upside is 9.2% over 5 years."
@@ -184,6 +186,7 @@ def test_worker_full_queue_is_unavailable_and_stores_nothing(tmp_path):
 
 def test_runner_strips_api_key_from_env(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-secret")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-secret")
     seen = {}
 
     def fake_run(cmd, **kwargs):
@@ -192,7 +195,9 @@ def test_runner_strips_api_key_from_env(monkeypatch):
 
     assert ClaudeRunner(timeout_s=7, run=fake_run)("the prompt") == "hello"
     kw = seen["kwargs"]
-    assert "ANTHROPIC_API_KEY" not in kw["env"] and "PATH" in kw["env"]
+    assert "ANTHROPIC_API_KEY" not in kw["env"]
+    assert "ANTHROPIC_AUTH_TOKEN" not in kw["env"]
+    assert "PATH" in kw["env"]
     assert kw["input"] == "the prompt" and kw["timeout"] == 7
     assert kw["text"] and kw["capture_output"]
     assert seen["cmd"][1:] == ["-p", "--model", "sonnet"]
@@ -213,3 +218,48 @@ def test_runner_raises_on_timeout():
 
     with pytest.raises(NarrativeError):
         ClaudeRunner(run=fake_run)("p")
+
+
+def test_failing_rerun_never_overwrites_ready(tmp_path):
+    def runner(prompt):
+        raise NarrativeError("down")
+
+    worker = make_worker(tmp_path, runner)
+    cache = Cache(tmp_path / "c.db")
+    cache.set(f"narrative:{payload_hash(ANALYSIS)}", {"status": "ready", "text": GOOD})
+    worker._queue.put((payload_hash(ANALYSIS), ANALYSIS))
+    worker.drain()
+    assert worker.get(ANALYSIS) == {"status": "ready", "text": GOOD}
+
+
+def test_request_rechecks_cache_inside_lock(tmp_path, monkeypatch):
+    calls = []
+    worker = make_worker(tmp_path, lambda p: calls.append(p) or GOOD)
+    Cache(tmp_path / "c.db").set(
+        f"narrative:{payload_hash(ANALYSIS)}", {"status": "ready", "text": GOOD}
+    )
+    real_get = worker.get
+    first = []
+
+    def racy_get(analysis):  # the first, unlocked read misses: the job just finished
+        if not first:
+            first.append(1)
+            return None
+        return real_get(analysis)
+
+    monkeypatch.setattr(worker, "get", racy_get)
+    assert worker.request(ANALYSIS) == "ready"
+    worker.drain()
+    assert calls == []
+
+
+def test_bad_payload_stores_unavailable(tmp_path, monkeypatch):
+    def boom(analysis):
+        raise TypeError("bad payload")
+
+    monkeypatch.setattr("elab.narrative.build_prompt", boom)
+    worker = make_worker(tmp_path, lambda p: GOOD)
+    assert worker.request(ANALYSIS) == "pending"
+    worker.drain()
+    assert worker.get(ANALYSIS) == {"status": "unavailable"}
+    assert worker.request(ANALYSIS) == "unavailable"

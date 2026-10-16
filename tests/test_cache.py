@@ -23,3 +23,13 @@ def test_cache_missing_key_and_overwrite(tmp_path):
     cache.set("k", {"v": 1})
     cache.set("k", {"v": 2})
     assert cache.get("k", None)[0] == {"v": 2}
+
+
+def test_cache_corrupt_row_is_treated_as_absent(tmp_path):
+    cache = Cache(tmp_path / "c.db")
+    with sqlite3.connect(tmp_path / "c.db") as conn:
+        conn.execute("INSERT INTO entries VALUES ('badjson', '{nope', ?)",
+                     (datetime.now(UTC).isoformat(),))
+        conn.execute("INSERT INTO entries VALUES ('badtime', '{}', 'yesterday-ish')")
+    assert cache.get("badjson", None) is None
+    assert cache.get("badtime", None) is None

@@ -7,11 +7,13 @@ A connection is opened per call: sqlite3 connections must not cross threads, and
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+log = logging.getLogger(__name__)
 BUSY_TIMEOUT_S = 10.0
 
 
@@ -36,10 +38,15 @@ class Cache:
             ).fetchone()
         if row is None:
             return None
-        stored_at = datetime.fromisoformat(row[1])
+        try:
+            value = json.loads(row[0])
+            stored_at = datetime.fromisoformat(row[1])
+        except (ValueError, TypeError):
+            log.warning("corrupt cache row for key %s ignored", key)
+            return None
         if max_age is not None and datetime.now(UTC) - stored_at > max_age:
             return None
-        return json.loads(row[0]), stored_at
+        return value, stored_at
 
     def set(self, key: str, value: dict) -> None:
         stored_at = datetime.now(UTC).isoformat()

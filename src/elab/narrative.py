@@ -35,7 +35,11 @@ RULES = (
     "Never use the words buy, sell, undervalued, overvalued, target. Do not give advice."
 )
 
-_FORBIDDEN = re.compile(r"\b(?:buy|sell|undervalued|overvalued|target)(?:s|ing|ed)?\b", re.I)
+_FORBIDDEN = re.compile(
+    r"\b(?:buy|buys|buying|sell|sells|selling|target|targets|undervalu\w*|overvalu\w*)\b", re.I
+)
+# Credentials that would switch the CLI from the subscription to metered billing.
+_STRIPPED_ENV = frozenset({"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"})
 _NUMBER = re.compile(r"[-+]?\d{1,3}(?:,\d{3})+(?:\.\d+)?|[-+]?\d+(?:\.\d+)?")
 
 
@@ -103,8 +107,7 @@ class ClaudeRunner:
         self._run = run
 
     def __call__(self, prompt: str) -> str:
-        # The key is stripped so the CLI uses the logged-in subscription, never metered billing.
-        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+        env = {k: v for k, v in os.environ.items() if k not in _STRIPPED_ENV}
         binary = shutil.which("claude") or "claude"  # claude.cmd on Windows
         try:
             proc = self._run(
@@ -156,6 +159,10 @@ class NarrativeWorker:
             return "ready" if cached["status"] == "ready" else "unavailable"
         digest = payload_hash(analysis)
         with self._lock:
+            # A job may have finished since the read above; re-check before re-enqueueing.
+            cached = self.get(analysis)
+            if cached is not None:
+                return "ready" if cached["status"] == "ready" else "unavailable"
             if digest in self._inflight:
                 return "pending"
             try:
@@ -173,7 +180,11 @@ class NarrativeWorker:
         while True:
             digest, analysis = self._queue.get()
             try:
-                self._cache.set(self._key(analysis), self._generate(analysis))
+                result = self._generate(analysis)
+                existing = self.get(analysis)
+                # A failed rerun must not destroy a narrative that already passed the checks.
+                if result["status"] == "ready" or not (existing and existing["status"] == "ready"):
+                    self._cache.set(self._key(analysis), result)
             except Exception:  # noqa: BLE001 - the thread must outlive any single job
                 log.exception("narrative job crashed")
             finally:
@@ -182,8 +193,8 @@ class NarrativeWorker:
                 self._queue.task_done()
 
     def _generate(self, analysis: dict) -> dict:
-        prompt = build_prompt(analysis)
         try:
+            prompt = build_prompt(analysis)
             text = self._runner(prompt)
             violations = check_text(text, analysis)
             if violations:
