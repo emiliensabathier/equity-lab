@@ -10,6 +10,7 @@ anything.
 
 from __future__ import annotations
 
+import logging
 import math
 import threading
 from collections.abc import Callable
@@ -28,9 +29,12 @@ from vlab.data.loader import (
 from vlab.errors import DataError, ValuationError
 from vlab.pipeline import CompanyResult, value_company
 
-from elab.config import RISK_FREE, RISK_FREE_DATE
+from elab.config import PEER_TABLE_FILE, RISK_FREE, RISK_FREE_DATE
+from elab.peers import peers_for
 from elab.resolve import CompanyMeta, company_from_info
 from elab.statements import fill_defaults, limit_sentence
+
+log = logging.getLogger(__name__)
 
 # vlab is not written for concurrent runs (shared on-disk cache, BLAS threads); one at a time.
 _LOCK = threading.Lock()
@@ -258,8 +262,31 @@ def _sections(
     return dcf, health, _limits(meta, defaulted, raw.income)
 
 
+def _multiples(ticker: str, info: dict, meta: CompanyMeta, cache_dir: Path) -> dict:
+    """Peer multiples from the weekly table; absent table or any failure stays contained here."""
+    path = cache_dir / PEER_TABLE_FILE
+    if not path.exists():
+        return dict(UNAVAILABLE_MULTIPLES)
+    try:
+        market_cap = float(info.get("marketCap") or 0.0)
+        if not math.isfinite(market_cap) or market_cap <= 0.0:
+            return {"status": "unavailable", "reason": "market capitalization is not reported"}
+        return peers_for(
+            ticker, meta.industry, meta.sector, market_cap, pd.read_parquet(path),
+            company_multiples={
+                "ev_ebitda": info.get("enterpriseToEbitda"),
+                "ev_sales": info.get("enterpriseToRevenue"),
+                "pe": info.get("trailingPE"),
+            },
+        )
+    except Exception as exc:  # the table is a side artifact: it must never fail the analysis
+        log.warning("multiples unavailable for %s: %s", ticker, exc)
+        return _unavailable(RuntimeError("peer table could not be read"))
+
+
 def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
-    meta = company_from_info(ticker, fetchers.info(ticker))
+    info = fetchers.info(ticker)
+    meta = company_from_info(ticker, info)
     header = _header(ticker, meta)
     if meta.excluded_reason is not None:
         return {**header, "price": None, "price_date": None, "coverage": "not_covered",
@@ -276,6 +303,7 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
         limits = _limits(meta, (), None)
     else:
         dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir)
+    # Coverage ignores multiples: they depend on a weekly job, not on this company's own data.
     full = dcf["status"] == "ok" and health["status"] == "ok"
     return {
         **header,
@@ -285,7 +313,7 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
         "verdict": _verdict(price, meta.company.trading_currency, dcf),
         "dcf": dcf,
         "health": health,
-        "multiples": dict(UNAVAILABLE_MULTIPLES),
+        "multiples": _multiples(ticker, info, meta, cache_dir),
         "limits": limits,
     }
 

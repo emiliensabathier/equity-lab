@@ -8,6 +8,8 @@ surfaced in the page's limits instead of being hidden.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 CORE_LINES: dict[str, tuple[str, ...]] = {
     "income": ("Total Revenue", "EBIT", "Pretax Income", "Tax Provision"),
     "cashflow": ("Capital Expenditure", "Depreciation And Amortization"),
@@ -72,3 +74,36 @@ RISK_FREE: dict[str, float] = {
     "NOK": 0.0456,
 }
 RISK_FREE_DATE = "2026-10-16"
+
+
+@dataclass(frozen=True)
+class ConstituentSource:
+    """A Wikipedia page listing an index's members, and the column holding their tickers."""
+
+    index: str
+    url: str
+    ticker_column: str
+    suffix: str  # Yahoo listing suffix appended when the page's tickers do not carry it
+
+
+_WIKI = "https://en.wikipedia.org/wiki/"
+
+# Columns checked against the live pages on 2026-10-17. The table is found by its ticker column,
+# not by position, since Wikipedia reorders tables. Pages that already print the Yahoo suffix
+# (CAC 40, DAX, AEX, IBEX, MIB, OMX) are not double-suffixed; FTSE 100 and SMI print bare codes.
+CONSTITUENT_SOURCES: tuple[ConstituentSource, ...] = (
+    ConstituentSource("S&P 500", _WIKI + "List_of_S%26P_500_companies", "Symbol", ""),
+    ConstituentSource("CAC 40", _WIKI + "CAC_40", "Ticker", ".PA"),
+    ConstituentSource("DAX", _WIKI + "DAX", "Ticker", ".DE"),
+    ConstituentSource("FTSE 100", _WIKI + "FTSE_100_Index", "Ticker", ".L"),
+    ConstituentSource("SMI", _WIKI + "Swiss_Market_Index", "Ticker", ".SW"),
+    ConstituentSource("AEX", _WIKI + "AEX_index", "Ticker", ".AS"),
+    ConstituentSource("IBEX 35", _WIKI + "IBEX_35", "Ticker", ".MC"),
+    ConstituentSource("FTSE MIB", _WIKI + "FTSE_MIB", "Ticker", ".MI"),
+    ConstituentSource("OMX Stockholm 30", _WIKI + "OMX_Stockholm_30", "Ticker", ".ST"),
+)
+
+PEER_TABLE_FILE = "peers.parquet"
+PEER_REFRESH_DAYS = 7
+MIN_PEERS = 4
+MAX_PEERS = 8
