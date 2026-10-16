@@ -28,11 +28,11 @@ def test_constituents_normalizes_tickers():
     fr = ConstituentSource("CAC 40", "u", "Ticker", ".PA")
     pages = {
         "us": [pd.DataFrame({"x": [1]}), pd.DataFrame({"Symbol": ["AAPL", "BRK.B", None]})],
-        "uk": [pd.DataFrame({"Ticker": ["III", "BT.A"]})],
+        "uk": [pd.DataFrame({"Ticker": ["III", "BT.A", "BP.", "rr. "]})],
         "fr": [pd.DataFrame({"Ticker": ["AC.PA", "MT.AS", "ml"]})],
     }
     assert constituents(us, lambda _: pages["us"]) == ["AAPL", "BRK-B"]
-    assert constituents(uk, lambda _: pages["uk"]) == ["III.L", "BT-A.L"]
+    assert constituents(uk, lambda _: pages["uk"]) == ["III.L", "BT-A.L", "BP.L", "RR.L"]
     assert constituents(fr, lambda _: pages["fr"]) == ["AC.PA", "MT.AS", "ML.PA"]
     with pytest.raises(ValueError, match="Symbol"):
         constituents(us, lambda _: pages["uk"])
@@ -141,3 +141,40 @@ def test_engine_multiples_from_table_and_isolated_failures(tmp_path):
     broken = analyze("ACME.PA", fetchers=_fetchers(info=info), cache_dir=tmp_path)
     assert broken["multiples"]["status"] == "unavailable"
     assert broken["coverage"] == "full"
+
+
+def test_note_mentions_listing_currencies():
+    got = peers_for("SELF", "Machinery", "Tech", 100.0, _peers())
+    assert got["note"].startswith("Multiples use EV/EBITDA, not EV/EBIT: peer figures come")
+    assert "listing currencies" in got["note"]
+
+
+def test_build_peer_table_rejects_empty_info_and_tolerates_bad_existing(caplog):
+    def info(ticker: str) -> dict:
+        return {} if ticker == "EMPTY" else {"marketCap": 5.0, "industry": "I"}
+
+    with caplog.at_level(logging.WARNING):
+        table = build_peer_table(["EMPTY", "OK"], info, sleep_s=0.0, sleep=lambda _: None)
+    assert list(table["ticker"]) == ["OK"]
+    assert "skipped EMPTY" in caplog.text
+
+    bad = pd.DataFrame({"ticker": ["OK", "Z"], "fetched_at": ["garbage", None]})
+    again = build_peer_table(["OK", "Z"], info, sleep_s=0.0, existing=bad, sleep=lambda _: None)
+    assert list(again["ticker"]) == ["OK", "Z"]
+    assert again["market_cap"].tolist() == [5.0, 5.0]
+
+    no_col = pd.DataFrame({"ticker": ["OK"]})
+    got = build_peer_table(["OK"], info, sleep_s=0.0, existing=no_col, sleep=lambda _: None)
+    assert list(got["ticker"]) == ["OK"]
+
+
+def test_peers_for_handles_duplicate_index_labels():
+    table = pd.concat([_peers(), _peers()])
+    got = peers_for("SELF", "Machinery", "Tech", 100.0, table)
+    assert len(got["peers"]) == 8
+
+
+def test_peers_for_company_negative_multiple_is_null():
+    got = peers_for("SELF", "Machinery", "Tech", 100.0, _peers(),
+                    company_multiples={"pe": -4.0, "ev_ebitda": 9.0})
+    assert got["company"]["pe"] is None and got["company"]["ev_ebitda"] == 9.0

@@ -37,7 +37,11 @@ _USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/124.0 Safari/537.36"
 )
-_NOTE = "Multiples use EV/EBITDA, not EV/EBIT: peer figures come from summary data."
+_NOTE = (
+    "Multiples use EV/EBITDA, not EV/EBIT: peer figures come from summary data. "
+    "Peer market caps are compared in their own listing currencies, so the size ranking "
+    "is approximate."
+)
 
 
 def read_html_tables(url: str) -> list[pd.DataFrame]:
@@ -50,7 +54,7 @@ def read_html_tables(url: str) -> list[pd.DataFrame]:
 
 def _normalize(raw: str, suffix: str) -> str:
     """Yahoo symbol: ``BRK.B`` -> ``BRK-B``; the suffix is added unless the page printed it."""
-    ticker = raw.strip().upper()
+    ticker = raw.strip().upper().rstrip(".")
     _, dot, tail = ticker.rpartition(".")
     if dot and f".{tail}" in INDEX_BY_SUFFIX:
         return ticker
@@ -91,6 +95,17 @@ def _row(ticker: str, info: dict, fetched_at: str) -> dict:
     }
 
 
+def _is_fresh(row: dict, cutoff: datetime) -> bool:
+    """A malformed or missing ``fetched_at`` counts as stale: refetch rather than abort."""
+    try:
+        stamp = pd.Timestamp(row["fetched_at"])
+        if stamp.tzinfo is None:
+            stamp = stamp.tz_localize(UTC)
+        return bool(stamp >= cutoff)
+    except (KeyError, ValueError, TypeError):
+        return False
+
+
 def build_peer_table(
     tickers: list[str],
     info: Callable[[str], dict],
@@ -112,11 +127,14 @@ def build_peer_table(
     rows = []
     for ticker in dict.fromkeys(tickers):
         old = kept.get(ticker)
-        if old is not None and pd.Timestamp(old["fetched_at"]) >= cutoff:
+        if old is not None and _is_fresh(old, cutoff):
             rows.append(old)
             continue
         try:
-            rows.append(_row(ticker, info(ticker), now.isoformat(timespec="seconds")))
+            data = info(ticker)
+            if not data.get("marketCap") and not data.get("industry"):
+                raise ValueError("empty info (no marketCap, no industry)")
+            rows.append(_row(ticker, data, now.isoformat(timespec="seconds")))
         except Exception as exc:  # yfinance raises many types; one bad ticker must not stop a run
             log.warning("peer table: skipped %s (%s: %s)", ticker, type(exc).__name__, exc)
             if old is not None:
@@ -147,7 +165,8 @@ def _peer(row: dict) -> dict:
 def _nearest(candidates: pd.DataFrame, market_cap: float) -> list[dict]:
     sized = candidates[candidates["market_cap"] > 0.0]
     distance = (sized["market_cap"].map(math.log) - math.log(market_cap)).abs()
-    return sized.loc[distance.sort_values(kind="stable").index[:MAX_PEERS]].to_dict("records")
+    order = distance.to_numpy().argsort(kind="stable")[:MAX_PEERS]
+    return sized.iloc[order].to_dict("records")
 
 
 def peers_for(
@@ -178,7 +197,7 @@ def peers_for(
                 "company": {
                     "ticker": ticker,
                     "market_cap": market_cap,
-                    **{key: (company_multiples or {}).get(key) for key in _MULTIPLES},
+                    **{key: _positive((company_multiples or {}).get(key)) for key in _MULTIPLES},
                 },
                 "peers": listed,
                 "median": {key: _median(listed, key) for key in _MULTIPLES},
