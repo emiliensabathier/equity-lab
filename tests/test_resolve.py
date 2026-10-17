@@ -116,3 +116,39 @@ def test_us_exchange_wins_over_dots_in_ticker():
 def test_multi_dot_ticker_uses_last_suffix():
     info = {"quoteType": "EQUITY", "longName": "X", "currency": "GBP", "exchange": "LSE"}
     assert company_from_info("A.B.L", info).market_index == "^FTSE"
+
+
+def test_search_fills_from_local_table_when_yahoo_returns_only_etfs():
+    quotes = [_quote("TTEF", "NYQ", "ETF")]
+    local = [("TTE.PA", "TotalEnergies SE"), ("AAPL", "Apple Inc.")]
+    got = search("total", lambda q: quotes, lambda: local)
+    assert got == [Match("TTE.PA", "TotalEnergies SE", "")]
+
+
+def test_search_local_matches_word_prefix_and_ticker_prefix_case_insensitively():
+    local = [("SAP.DE", "SAP SE"), ("BAS.DE", "BASF SE"), ("AIR.PA", "Airbus SE")]
+    energies = [("X", "Total Energies")]
+    assert [m.ticker for m in search("energ", lambda q: [], lambda: energies)] == ["X"]
+    assert [m.ticker for m in search("bas", lambda q: [], lambda: local)] == ["BAS.DE"]
+    assert [m.ticker for m in search("ASF", lambda q: [], lambda: local)] == []  # not a prefix
+    assert [m.ticker for m in search("air", lambda q: [], lambda: local)] == ["AIR.PA"]
+
+
+def test_search_local_skips_yahoo_duplicates_and_respects_cap():
+    quotes = [_quote("TTE.PA", "PAR")]
+    local = [("TTE.PA", "TotalEnergies SE")] + [(f"T{i}", f"Total {i}") for i in range(12)]
+    got = search("total", lambda q: quotes, lambda: local)
+    assert got[0].ticker == "TTE.PA" and got[0].exchange == "PAR"
+    assert len(got) == 8 and len({m.ticker for m in got}) == 8
+
+
+def test_local_peer_names_reads_table_and_tolerates_missing_file(tmp_path):
+    import pandas as pd
+
+    from elab.resolve import local_peer_names
+
+    assert local_peer_names(tmp_path)() == []
+    pd.DataFrame({"ticker": ["TTE.PA"], "name": ["TotalEnergies SE"], "pe": [9.0]}).to_parquet(
+        tmp_path / "peers.parquet"
+    )
+    assert local_peer_names(tmp_path)() == [("TTE.PA", "TotalEnergies SE")]

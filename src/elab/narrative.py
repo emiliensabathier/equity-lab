@@ -32,8 +32,11 @@ RULES = (
     "You write a short commentary on an equity analysis. Write about 250 words in four short "
     "paragraphs: what the price implies; plausibility against history and peers; balance-sheet "
     "points; what would change the reading. Quote only figures present in the JSON. "
-    "Never use the words buy, sell, undervalued, overvalued, target. Do not give advice."
+    "Never use the words buy, sell, undervalued, overvalued, target. Do not give advice. "
+    "Write in English. Use '.' as the decimal separator. Large amounts may be written in "
+    "billions or millions (e.g. 263.3 billion)."
 )
+SCALE_EXPONENTS = (3, 6, 9, 12)
 
 _FORBIDDEN = re.compile(
     r"\b(?:buy|buys|buying|sell|sells|selling|target|targets|undervalu\w*|overvalu\w*)\b", re.I
@@ -76,8 +79,9 @@ def check_text(text: str, analysis: dict) -> list[str]:
     """List violations: advice words, and figures absent from the analysis.
 
     A figure matches a payload value as is or times 100 (fractions are quoted as percentages),
-    within half a unit of its last printed decimal; the sign is ignored since prose says
-    "fell 2.1%". Numbers that sit inside payload strings (index names, dates) match literally.
+    or scaled by a thousand, million, billion or trillion ("263.3 billion"), within half a unit
+    of its last printed decimal; the sign is ignored since prose says "fell 2.1%".
+    Numbers that sit inside payload strings (index names, dates) match literally.
     """
     violations = [f"forbidden word: {m.group(0).lower()}" for m in _FORBIDDEN.finditer(text)]
     numbers: list[float] = []
@@ -96,6 +100,10 @@ def check_text(text: str, analysis: dict) -> list[str]:
         if digits in literals:
             continue
         if any(abs(x - abs(v)) <= tol or abs(x - 100 * abs(v)) <= tol for v in numbers):
+            continue
+        if any(
+            abs(x * 10**k - abs(v)) <= tol * 10**k for k in SCALE_EXPONENTS for v in numbers
+        ):
             continue
         violations.append(f"number not in data: {m.group(0)}")
     return violations
@@ -210,5 +218,6 @@ class NarrativeWorker:
             log.warning("narrative runner failed: %s", type(exc).__name__)
             return {"status": "unavailable"}
         if violations:
+            log.warning("narrative rejected for %s: %s", analysis.get("ticker", "?"), violations)
             return {"status": "unavailable"}
         return {"status": "ready", "text": text}

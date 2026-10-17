@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -75,3 +76,82 @@ def test_pregenerate_processes_list_one_at_a_time():
         ("analyze", "B"), ("request", "B"), ("drain",),
     ]
     assert set(cache.stored) == {"analysis:A", "analysis:B"}
+
+
+def test_pregenerate_normalizes_tickers_like_the_api():
+    events: list[tuple] = []
+    cache = _Cache()
+    ok, failed = pregenerate(
+        ["aapl", "bad ticker!"],
+        analyze=lambda t: events.append(("analyze", t)) or {"ticker": t},
+        cache=cache,
+        worker=_Worker(events),
+    )
+    assert (ok, failed) == (1, 1)
+    assert ("analyze", "AAPL") in events
+    assert set(cache.stored) == {"analysis:AAPL"}
+
+
+def test_build_peers_command_smoke(tmp_path, monkeypatch):
+    import pandas as pd
+
+    from elab import __main__ as cli
+    from elab import engine, peers
+
+    monkeypatch.setattr(config, "CONSTITUENT_SOURCES", config.CONSTITUENT_SOURCES[:1])
+    monkeypatch.setattr(peers, "constituents", lambda source: ["AAA", "BBB"])
+    monkeypatch.setattr(engine, "default_fetchers", lambda: SimpleNamespace(info=lambda t: {}))
+    seen = {}
+
+    def fake_build(tickers, info, existing=None):
+        seen["tickers"] = tickers
+        return pd.DataFrame({"ticker": tickers, "name": tickers})
+
+    monkeypatch.setattr(peers, "build_peer_table", fake_build)
+    assert cli.main(["build-peers", "--data-dir", str(tmp_path)]) == 0
+    assert seen["tickers"] == ["AAA", "BBB"]
+    assert (tmp_path / config.PEER_TABLE_FILE).is_file()
+
+
+def test_build_peers_command_fails_without_constituents(tmp_path, monkeypatch):
+    from elab import __main__ as cli
+    from elab import peers
+
+    def boom(source):
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(peers, "constituents", boom)
+    assert cli.main(["build-peers", "--data-dir", str(tmp_path)]) == 1
+    assert not (tmp_path / config.PEER_TABLE_FILE).exists()
+
+
+def test_pregenerate_command_smoke(tmp_path, monkeypatch):
+    from elab import __main__ as cli
+    from elab import engine, narrative
+
+    monkeypatch.setattr(config, "PREGENERATE", ("aapl",))
+    monkeypatch.setattr(engine, "default_fetchers", lambda: object())
+    monkeypatch.setattr(
+        engine, "analyze", lambda ticker, fetchers, cache_dir: {"ticker": ticker, "price": 1.0}
+    )
+    monkeypatch.setattr(narrative, "ClaudeRunner", lambda: (lambda prompt: "Price is 1.0."))
+    assert cli.main(["pregenerate", "--data-dir", str(tmp_path)]) == 0
+    from elab.cache import Cache
+
+    assert Cache(tmp_path / "cache.sqlite").get("analysis:AAPL", None) is not None
+
+
+def test_serve_command_passes_args_to_uvicorn(tmp_path, monkeypatch):
+    import uvicorn
+
+    from elab import __main__ as cli
+    from elab import engine, narrative
+
+    monkeypatch.setattr(engine, "default_fetchers", lambda: object())
+    monkeypatch.setattr(narrative, "ClaudeRunner", lambda: (lambda prompt: ""))
+    calls = {}
+    monkeypatch.setattr(uvicorn, "run", lambda app, **kw: calls.update(app=app, **kw))
+    rc = cli.main(["serve", "--host", "0.0.0.0", "--port", "9001", "--data-dir", str(tmp_path)])
+    assert rc == 0
+    assert (calls["host"], calls["port"], calls["workers"]) == ("0.0.0.0", 9001, 1)
+    assert calls["app"].title == "equity-lab"

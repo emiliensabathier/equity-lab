@@ -1,5 +1,5 @@
 [Unit]
-Description=equity-lab weekly jobs (peer table, then pre-generated pages)
+Description=equity-lab jobs (peer table, then pre-generated pages)
 After=network-online.target
 Wants=network-online.target
 
@@ -8,11 +8,13 @@ Type=oneshot
 User=equity-lab
 WorkingDirectory=/opt/equity-lab
 EnvironmentFile=/opt/equity-lab/.env
+Environment=HOME=/opt/equity-lab
+Environment=PATH=/opt/equity-lab/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=OPENBLAS_NUM_THREADS=1
 Environment=OMP_NUM_THREADS=1
 Environment=MKL_NUM_THREADS=1
 Environment=EQUITY_LAB_DATA=/opt/equity-lab/data
-ExecStart=/opt/equity-lab/.venv/bin/python -m elab build-peers
+ExecStart=-/opt/equity-lab/.venv/bin/python -m elab build-peers
 ExecStart=/opt/equity-lab/.venv/bin/python -m elab pregenerate
 MemoryMax=1G
-TimeoutStartSec=6h
+TimeoutStartSec=8h

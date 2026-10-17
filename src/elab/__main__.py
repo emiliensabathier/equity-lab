@@ -1,4 +1,4 @@
-"""Command line: ``serve`` the site, ``build-peers`` weekly table, ``pregenerate`` popular pages."""
+"""Command line: ``serve`` the site, ``build-peers`` peer table, ``pregenerate`` popular pages."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from elab import config
+from elab.api import normalize_ticker
 
 log = logging.getLogger("elab")
 
@@ -48,8 +49,9 @@ def pregenerate(
     is logged and skipped. Returns (ok, failed).
     """
     ok = failed = 0
-    for ticker in tickers:
+    for raw in tickers:
         try:
+            ticker = normalize_ticker(raw)
             result = analyze(ticker)
             cache.set(f"analysis:{ticker}", result)
             worker.request(result)
@@ -58,7 +60,7 @@ def pregenerate(
             log.info("pregenerated %s", ticker)
         except Exception as exc:  # noqa: BLE001 - one bad ticker must not stop the run
             failed += 1
-            log.warning("pregenerate: %s failed (%s: %s)", ticker, type(exc).__name__, exc)
+            log.warning("pregenerate: %s failed (%s: %s)", raw, type(exc).__name__, exc)
     log.info("pregenerate done: %d ok, %d failed", ok, failed)
     return ok, failed
 
@@ -70,13 +72,14 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     from elab.cache import Cache
     from elab.engine import default_fetchers
     from elab.narrative import ClaudeRunner, NarrativeWorker
-    from elab.resolve import _yahoo_search
+    from elab.resolve import _yahoo_search, local_peer_names
 
     args.data_dir.mkdir(parents=True, exist_ok=True)
     cache = Cache(args.data_dir / "cache.sqlite")
     app = create_app(
         fetchers=default_fetchers(), cache=cache, worker=NarrativeWorker(cache, ClaudeRunner()),
-        searcher=_yahoo_search, cache_dir=args.data_dir, static_dir=REPO_ROOT / "static",
+        searcher=_yahoo_search, local_names=local_peer_names(args.data_dir),
+        cache_dir=args.data_dir, static_dir=REPO_ROOT / "static",
     )
     uvicorn.run(app, host=args.host, port=args.port, workers=1)
     return 0

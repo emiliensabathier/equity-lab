@@ -33,3 +33,13 @@ def test_cache_corrupt_row_is_treated_as_absent(tmp_path):
         conn.execute("INSERT INTO entries VALUES ('badtime', '{}', 'yesterday-ish')")
     assert cache.get("badjson", None) is None
     assert cache.get("badtime", None) is None
+
+
+def test_two_caches_on_one_file_can_write(tmp_path):
+    first, second = Cache(tmp_path / "c.db"), Cache(tmp_path / "c.db")
+    first.set("a", {"v": 1})
+    second.set("b", {"v": 2})
+    assert first.get("b", None)[0] == {"v": 2}
+    assert second.get("a", None)[0] == {"v": 1}
+    with sqlite3.connect(tmp_path / "c.db") as conn:
+        assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"

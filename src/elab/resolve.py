@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from vlab.errors import DataError
 from vlab.universe import Company
@@ -17,6 +18,7 @@ from elab.config import (
     EXCLUDED_SECTORS,
     FALLBACK_INDEX,
     INDEX_BY_SUFFIX,
+    PEER_TABLE_FILE,
     US_EXCHANGES,
 )
 
@@ -59,10 +61,43 @@ def _suffix(ticker: str) -> str:
     return ticker[ticker.rindex("."):] if "." in ticker else ""
 
 
+def local_peer_names(cache_dir: Path) -> Callable[[], list[tuple[str, str]]]:
+    """Reader of (ticker, name) rows from the peer table; no file means no rows."""
+
+    def read() -> list[tuple[str, str]]:
+        import pandas as pd
+
+        path = cache_dir / PEER_TABLE_FILE
+        if not path.is_file():
+            return []
+        table = pd.read_parquet(path, columns=["ticker", "name"])
+        names = table["name"].fillna("").astype(str)
+        return list(zip(table["ticker"].astype(str), names, strict=True))
+
+    return read
+
+
+def _local_matches(query: str, rows: list[tuple[str, str]]) -> list[Match]:
+    """Rows where the query is a prefix of the ticker or of any word of the name."""
+    needle = query.lower()
+    return [
+        Match(ticker, name, "")
+        for ticker, name in rows
+        if ticker.lower().startswith(needle)
+        or any(word.startswith(needle) for word in name.lower().split())
+    ]
+
+
 def search(
-    query: str, searcher: Callable[[str], list[dict]] = _yahoo_search
+    query: str,
+    searcher: Callable[[str], list[dict]] = _yahoo_search,
+    local_names: Callable[[], list[tuple[str, str]]] | None = None,
 ) -> list[Match]:
-    """Listed US or covered-European equities matching a free-text query, at most 8."""
+    """Listed US or covered-European equities matching a free-text query, at most 8.
+
+    Yahoo returns few quotes and often only ETFs, so when it yields fewer than 8 covered
+    equities the peer table fills the rest (Yahoo results first).
+    """
     query = query.strip()
     if not MIN_QUERY <= len(query) <= MAX_QUERY:
         return []
@@ -78,6 +113,10 @@ def search(
         matches.append(Match(symbol, name, exchange))
         if len(matches) == MAX_MATCHES:
             break
+    if len(matches) < MAX_MATCHES and local_names is not None:
+        seen = {m.ticker for m in matches}
+        extra = [m for m in _local_matches(query, local_names()) if m.ticker not in seen]
+        matches.extend(extra[: MAX_MATCHES - len(matches)])
     return matches
 
 

@@ -74,12 +74,21 @@ def client_ip(request: Request) -> str:
     return peer
 
 
+def normalize_ticker(raw: str) -> str:
+    """Upper-case a ticker and reject anything outside the allowed pattern (HTTP 422)."""
+    ticker = raw.upper()
+    if not _TICKER.fullmatch(ticker):
+        raise HTTPException(422, "Invalid ticker.")
+    return ticker
+
+
 def create_app(
     *,
     fetchers: Fetchers,
     cache: Cache,
     worker: NarrativeWorker,
     searcher: Callable[[str], list[dict]],
+    local_names: Callable[[], list[tuple[str, str]]] = lambda: [],
     cache_dir: Path,
     static_dir: Path,
     clock: Callable[[], float] = time.monotonic,
@@ -96,11 +105,7 @@ def create_app(
         with locks_guard:
             return ticker_locks.setdefault(ticker, threading.Lock())
 
-    def normalize(raw: str) -> str:
-        ticker = raw.upper()
-        if not _TICKER.fullmatch(ticker):
-            raise HTTPException(422, "Invalid ticker.")
-        return ticker
+    normalize = normalize_ticker
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception) -> JSONResponse:
@@ -110,7 +115,7 @@ def create_app(
     @app.get("/api/search")
     def api_search(q: str = "") -> list[dict]:
         try:
-            return [asdict(m) for m in search(q, searcher)]
+            return [asdict(m) for m in search(q, searcher, local_names)]
         except Exception:
             log.exception("search failed")
             raise HTTPException(503, "Search is unavailable, try again in a minute.") from None

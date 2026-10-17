@@ -22,6 +22,8 @@ class Cache:
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as conn, conn:
+            # Persistent in the file: serve and pregenerate write from separate processes.
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS entries ("
                 "key TEXT PRIMARY KEY, value TEXT, stored_at TEXT)"

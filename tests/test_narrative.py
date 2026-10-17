@@ -279,3 +279,28 @@ def test_is_inflight_true_while_job_runs_then_false(tmp_path):
     gate.set()
     worker.drain()
     assert worker.is_inflight(ANALYSIS) is False
+
+
+def test_check_text_accepts_scaled_amounts():
+    data = {"revenue": [263_312_000_000, 182_290_000_000]}
+    assert check_text("Revenue fell from 263.3 billion to 182.3 billion", data) == []
+    assert check_text("Revenue was 263.3 billion", {"revenue": 300e9}) == [
+        "number not in data: 263.3"
+    ]
+
+
+def test_check_text_accepts_millions():
+    assert check_text("Debt is 1,250 million", {"debt": 1_250_000_000}) == []
+
+
+def test_rules_ask_for_english_with_decimal_point():
+    assert "Write in English" in build_prompt(ANALYSIS)
+    assert "'.' as the decimal separator" in build_prompt(ANALYSIS)
+
+
+def test_rejected_narrative_is_logged(tmp_path, caplog):
+    worker = make_worker(tmp_path, lambda p: "Invented 99.9%.")
+    with caplog.at_level("WARNING", logger="elab.narrative"):
+        worker.request(ANALYSIS)
+        worker.drain()
+    assert any("narrative rejected for ACME" in r.getMessage() for r in caplog.records)

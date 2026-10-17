@@ -2,7 +2,11 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 env:
   OPENBLAS_NUM_THREADS: "1"
@@ -28,6 +32,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ./valuation-lab
-      - run: pip install -e .[dev]
+      - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest --cov=elab --cov-fail-under=80
