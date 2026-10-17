@@ -88,10 +88,17 @@ def check_text(text: str, analysis: dict) -> list[str]:
     of its last printed decimal; the sign is ignored since prose says "fell 2.1%".
     Numbers that sit inside payload strings (index names, dates) match literally.
     """
-    violations = [f"forbidden word: {m.group(0).lower()}" for m in _FORBIDDEN.finditer(text)]
     numbers: list[float] = []
     strings: list[str] = []
     _walk(analysis, numbers, strings)
+    # A forbidden word spelled as in a payload name ("Target", the retailer among Walmart's
+    # peers) is that name, not advice.
+    names = {m.group(0) for s in strings for m in _FORBIDDEN.finditer(s)}
+    violations = [
+        f"forbidden word: {m.group(0).lower()}"
+        for m in _FORBIDDEN.finditer(text)
+        if m.group(0) not in names
+    ]
     literals = {
         m.group(0).lstrip("+-").replace(",", "") for s in strings for m in _NUMBER.finditer(s)
     }

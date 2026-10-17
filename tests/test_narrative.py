@@ -365,3 +365,11 @@ def test_worker_serves_text_without_markdown(tmp_path):
 def test_figure_inside_the_index_name_passes():
     analysis = {"dcf": {"beta_index": "^GSPC", "beta_index_name": "S&P 500", "beta": 1.14}}
     assert check_text("Beta of 1.14 against the S&P 500.", analysis) == []
+
+
+def test_forbidden_word_inside_a_peer_name_passes_but_not_as_advice():
+    analysis = {"peers": [{"ticker": "TGT", "name": "Target Corporation"}]}
+    assert check_text("Peers include Target.", analysis) == []
+    assert check_text("Peers include Target; no price target.", analysis) == [
+        "forbidden word: target"
+    ]
