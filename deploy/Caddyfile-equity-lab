@@ -1,15 +1,19 @@
 # Site block for the VPS Caddyfile (/etc/caddy/Caddyfile). Caddy obtains and renews the TLS
 # certificate itself once the domain's A record points at the server.
 analyse.emiliensabathier.fr {
-	encode gzip
+	encode zstd gzip
 	header {
-		# The page loads only its own files plus Chart.js from cdnjs; it has no inline script or
-		# style (Chart.js sizes its canvas through the CSSOM, which style-src does not govern).
-		Content-Security-Policy "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		# The page loads only its own files, Chart.js included; it has no inline script or style
+		# (Chart.js sizes its canvas through the CSSOM, which style-src does not govern).
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
+	# Static URLs carry a version (?v=) bumped on each change, and a replaced font gets a new
+	# file name: browsers may keep them a year. The page itself and the API are not cached.
+	@static path /static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
 	# With no trusted proxy configured, Caddy discards a client-supplied X-Forwarded-For and sends the
 	# real client address: the API trusts the first hop coming from loopback.
 	reverse_proxy 127.0.0.1:8040 {

@@ -38,10 +38,27 @@ def test_page_never_assigns_data_through_innerhtml():
     assert "innerHTML" not in (STATIC / "app.js").read_text("utf-8")
 
 
-def test_chartjs_script_is_pinned_with_integrity_hash():
+def test_chartjs_is_self_hosted_and_pinned_with_integrity_hash():
+    import base64
+    import hashlib
+    import re
+
     html = (STATIC / "index.html").read_text("utf-8")
-    assert "Chart.js/4.4.1/chart.umd.min.js" in html
-    assert 'integrity="sha512-' in html and 'crossorigin="anonymous"' in html
+    assert "cdnjs" not in html
+    script = r'src="/static/vendor/chart.umd.min.js\?v=4.4.1"\s+integrity="sha512-([^"]+)"'
+    pinned = re.search(script, html).group(1)
+    digest = hashlib.sha512((STATIC / "vendor" / "chart.umd.min.js").read_bytes()).digest()
+    assert base64.b64encode(digest).decode() == pinned
+
+
+def test_scripts_are_deferred_and_every_static_url_is_versioned():
+    import re
+
+    html = (STATIC / "index.html").read_text("utf-8")
+    assert len(re.findall(r"<script defer src=", html)) == html.count("<script")
+    for url in re.findall(r'(?:src|href)="(/static/[^"]+)"', html):
+        if "/fonts/" not in url:  # fonts are preloaded and fetched from the CSS by plain URL
+            assert "?v=" in url, url
     assert 'id="search-status"' in html and 'id="status"' in html
 
 

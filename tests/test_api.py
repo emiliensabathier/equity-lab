@@ -43,7 +43,8 @@ def env(tmp_path, monkeypatch):
     static.mkdir()
     (static / "index.html").write_text("<h1>equity-lab</h1>")
     (static / "app.js").write_text("// js")
-    state = {"calls": 0, "behavior": lambda t: {**ANALYSIS, "ticker": t}, "now": 0.0, "searches": 0}
+    state = {"calls": 0, "behavior": lambda t: {**ANALYSIS, "ticker": t}, "now": 0.0, "searches": 0,
+             "queued": [], "inline": True}
 
     def fake_analyze(ticker, *, fetchers, cache_dir):
         state["calls"] += 1
@@ -67,6 +68,7 @@ def env(tmp_path, monkeypatch):
         cache_dir=tmp_path,
         static_dir=static,
         clock=lambda: state["now"],
+        background=lambda job: job() if state["inline"] else state["queued"].append(job),
     )
     return {"client": TestClient(app), "cache": cache, "worker": worker, "state": state}
 
@@ -106,14 +108,41 @@ def test_concurrent_cold_requests_run_one_analysis(env):
     assert env["state"]["calls"] == 1
 
 
-def test_upstream_failure_serves_stale_copy(env, monkeypatch):
+def test_expired_copy_is_served_at_once_while_a_refresh_replaces_it(env, monkeypatch):
+    env["cache"].set("analysis:ACME", ANALYSIS)
+    monkeypatch.setattr(api_mod.config, "ANALYSIS_TTL", timedelta(0))
+    env["state"]["inline"] = False
+    env["state"]["behavior"] = lambda t: {**ANALYSIS, "value": 99.0}
+
+    res = env["client"].get("/api/analysis/ACME")
+
+    assert res.json() == {**ANALYSIS, "stale": False, "refreshing": True}
+    assert env["state"]["calls"] == 0  # nothing computed while the visitor waited
+    [job] = env["state"]["queued"]
+    job()
+    assert env["cache"].get("analysis:ACME", None)[0]["value"] == 99.0
+
+
+def test_requests_during_a_refresh_queue_it_once(env, monkeypatch):
+    env["cache"].set("analysis:ACME", ANALYSIS)
+    monkeypatch.setattr(api_mod.config, "ANALYSIS_TTL", timedelta(0))
+    env["state"]["inline"] = False
+    for _ in range(3):
+        assert env["client"].get("/api/analysis/ACME").json()["refreshing"] is True
+    assert len(env["state"]["queued"]) == 1
+
+
+def test_a_failed_refresh_keeps_the_old_copy_and_can_be_retried(env, monkeypatch):
     env["cache"].set("analysis:ACME", ANALYSIS)
     monkeypatch.setattr(api_mod.config, "ANALYSIS_TTL", timedelta(0))
     env["state"]["behavior"] = lambda t: (_ for _ in ()).throw(RuntimeError("secret boom"))
     res = env["client"].get("/api/analysis/ACME")
     assert res.status_code == 200
-    assert res.json() == {**ANALYSIS, "stale": True}
+    assert res.json() == {**ANALYSIS, "stale": False, "refreshing": True}
     assert "secret boom" not in res.text
+    assert env["cache"].get("analysis:ACME", None)[0] == ANALYSIS
+    env["client"].get("/api/analysis/ACME")
+    assert env["state"]["calls"] == 2  # the failed ticker is not stuck as "refreshing"
 
 
 def test_upstream_failure_without_cache_is_503(env):
@@ -361,3 +390,7 @@ def test_search_cache_drops_the_oldest_entry_past_its_size():
         cache.set(key, [{"ticker": key}])
     assert cache.get("a") is None
     assert cache.get("c") == [{"ticker": "c"}]
+
+
+def test_index_answers_head_requests(env):
+    assert env["client"].head("/").status_code == 200

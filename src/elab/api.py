@@ -2,7 +2,8 @@
 
 The rule here is that a recruiter never sees a 500. Yahoo being down degrades to the last good
 copy (flagged stale) or a plain 503; only an unknown ticker is a 404, and exception text is
-logged, never returned.
+logged, never returned. An expired copy is served at once (flagged refreshing) while a
+background thread recomputes it, so only a ticker never analysed makes a visitor wait.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import threading
 import time
 from collections import defaultdict, deque
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
@@ -29,7 +31,9 @@ from elab.resolve import MAX_QUERY, MIN_QUERY, UnknownTicker, search
 
 log = logging.getLogger(__name__)
 
-RATE_LIMIT_MESSAGE = "Too many new analyses from this address. Companies already analysed stay available."
+RATE_LIMIT_MESSAGE = (
+    "Too many new analyses from this address. Companies already analysed stay available."
+)
 SEARCH_RATE_MESSAGE = "Too many searches from this address. Try again in a minute."
 UNAVAILABLE_MESSAGE = "Data source unavailable, try again in a minute."
 LOOPBACK = frozenset({"127.0.0.1", "::1", "::ffff:127.0.0.1"})
@@ -121,6 +125,7 @@ def create_app(
     cache_dir: Path,
     static_dir: Path,
     clock: Callable[[], float] = time.monotonic,
+    background: Callable[[Callable[[], None]], object] | None = None,
 ) -> FastAPI:
     app = FastAPI(title="equity-lab", docs_url=None, redoc_url=None)
     cold_limiter = SlidingWindowLimiter(config.COLD_ANALYSES_PER_HOUR, config.RATE_WINDOW, clock)
@@ -131,12 +136,44 @@ def create_app(
     search_cache = TtlCache(config.SEARCH_CACHE_TTL, config.SEARCH_CACHE_MAX, clock)
     ticker_locks: dict[str, threading.Lock] = {}
     locks_guard = threading.Lock()
+    # One refresh at a time: the engine serializes runs anyway, and Yahoo is not hammered.
+    run_later = background or ThreadPoolExecutor(1, thread_name_prefix="refresh").submit
+    refreshing: set[str] = set()
 
     def lock_for(ticker: str) -> threading.Lock:
         with locks_guard:
             return ticker_locks.setdefault(ticker, threading.Lock())
 
     normalize = normalize_ticker
+
+    def refresh(ticker: str) -> None:
+        key = f"analysis:{ticker}"
+        try:
+            with lock_for(ticker):
+                if cache.get(key, config.ANALYSIS_TTL) is None:
+                    cache.set(key, analyze(ticker, fetchers=fetchers, cache_dir=cache_dir))
+        except Exception:
+            log.exception("background refresh failed for %s", ticker)
+        finally:
+            with locks_guard:
+                refreshing.discard(ticker)
+
+    def schedule_refresh(ticker: str, ip: str) -> bool:
+        """True once a refresh of ``ticker`` is queued or running; False when over budget."""
+        with locks_guard:
+            if ticker in refreshing:
+                return True
+            if not cold_limiter.try_acquire(ip):
+                return False
+            refreshing.add(ticker)
+        try:
+            run_later(lambda: refresh(ticker))
+        except Exception:
+            log.exception("could not queue a refresh for %s", ticker)
+            with locks_guard:
+                refreshing.discard(ticker)
+            return False
+        return True
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception) -> JSONResponse:
@@ -168,6 +205,12 @@ def create_app(
         fresh = cache.get(key, config.ANALYSIS_TTL)
         if fresh is not None:
             return {**fresh[0], "stale": False}
+        expired = cache.get(key, None)
+        if expired is not None:
+            # Served now; the visitor reloads for the new copy. Over budget, it stays as is.
+            if schedule_refresh(ticker, client_ip(request)):
+                return {**expired[0], "stale": False, "refreshing": True}
+            return {**expired[0], "stale": True}
         with lock_for(ticker):
             # A request that waited here is served by the analysis the first one just stored.
             fresh = cache.get(key, config.ANALYSIS_TTL)
@@ -219,7 +262,8 @@ def create_app(
             return {"status": "unavailable"}
         return {"status": status}
 
-    @app.get("/", include_in_schema=False)
+    # HEAD as well: uptime monitors and link previews probe the page that way.
+    @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
     def index() -> FileResponse:
         page = Path(static_dir) / "index.html"
         if not page.is_file():

@@ -346,6 +346,9 @@ function render(a) {
   if (a.stale) {
     report.append(el("div", { class: "banner", role: "note" },
       `Showing the last saved analysis from ${day(a.as_of)}; live data is unavailable.`));
+  } else if (a.refreshing) {
+    report.append(el("div", { class: "banner", role: "note" },
+      `Showing the analysis from ${day(a.as_of)} while a newer one is prepared. Reload in a minute for it.`));
   }
   if (a.coverage === "not_covered") {
     report.append(el("section", { class: "verdict" },
@@ -594,7 +597,7 @@ function healthCard(h, a) {
   if (!h || h.status !== "ok") return card("Financial health", unavailable(h));
   const years = h.years || [];
   const ccy = a.reporting_currency;
-  // Without Chart.js (CDN blocked) the table carries the same figures.
+  // Without Chart.js (script failed to load) the table carries the same figures.
   if (typeof Chart === "undefined") return card("Financial health", healthTable(years, ccy));
   const boxes = [
     chartBox(`Revenue (${ccy})`, "bar", years, "revenue", (v) => compact(v)),

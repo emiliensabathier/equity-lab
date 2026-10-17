@@ -184,7 +184,7 @@ SEARCH_WINDOW = timedelta(minutes=1)
 SEARCH_CACHE_TTL = timedelta(minutes=10)
 SEARCH_CACHE_MAX = 2000
 
-# Weekly pre-generation: liquid non-financial names (banks and insurers are "not covered", so
+# Daily pre-generation: liquid non-financial names (banks and insurers are "not covered", so
 # they would only burn time). Pages for these load instantly from the cache.
 PREGENERATE: tuple[str, ...] = (
     "MC.PA", "OR.PA", "TTE.PA", "SAN.PA", "AIR.PA", "SU.PA", "AI.PA", "RMS.PA", "KER.PA",
@@ -196,4 +196,9 @@ PREGENERATE: tuple[str, ...] = (
     "NOVO-B.CO",
     "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "NFLX", "KO", "PEP", "WMT",
     "XOM", "JNJ", "PG", "HD", "COST",
+    # Second tier: the rest of the large non-financial names a visitor is likely to type.
+    "VIE.PA", "ORA.PA", "LR.PA", "ML.PA", "PUB.PA", "ENGI.PA", "SGO.PA", "HO.PA", "DSY.PA",
+    "IFX.DE", "DHL.DE", "RWE.DE", "EOAN.DE", "MRK.DE", "BAYN.DE",
+    "RACE.MI", "ENEL.MI", "ENI.MI", "VOLV-B.ST", "ATCO-A.ST", "REL.L", "RR.L", "DGE.L",
+    "AVGO", "ORCL", "LLY", "ADBE", "CRM", "AMD", "MCD", "NKE", "DIS",
 )

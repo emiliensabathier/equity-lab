@@ -9,11 +9,17 @@ CADDY = (DEPLOY / "Caddyfile-equity-lab").read_text("utf-8")
 
 def test_caddy_sends_security_headers_and_a_csp_matching_the_page():
     csp = re.search(r'Content-Security-Policy "([^"]+)"', CADDY).group(1)
-    assert "script-src 'self' https://cdnjs.cloudflare.com" in csp
+    assert "script-src 'self';" in csp  # Chart.js is served from /static/vendor
     assert "frame-ancestors 'none'" in csp
     assert "unsafe-inline" not in csp  # the page has no inline script or style
     assert 'X-Content-Type-Options "nosniff"' in CADDY
     assert 'Referrer-Policy "strict-origin-when-cross-origin"' in CADDY
+
+
+def test_caddy_caches_versioned_static_files_and_compresses():
+    assert "@static path /static/*" in CADDY
+    assert 'header @static Cache-Control "public, max-age=31536000, immutable"' in CADDY
+    assert "encode zstd gzip" in CADDY
 
 
 def test_caddy_proxies_to_the_app_and_waits_for_a_cold_analysis():

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from vlab.dcf import Assumptions, growth_path
+from vlab.errors import DataError
 from vlab.wacc import EQUITY_RISK_PREMIUM
 
 from elab.config import RISK_FREE
@@ -640,3 +641,43 @@ def test_a_single_currency_dcf_has_no_conversion_sentence(tmp_path):
 
     assert got["dcf"]["model_currency"] == got["dcf"]["risk_free_currency"] == "EUR"
     assert not any(line.startswith("DCF run in") for line in got["limits"])
+
+
+def test_statements_download_while_the_prices_load(tmp_path):
+    # Run one after the other, the stock's price fetch would wait out its timeout for statements.
+    import threading
+
+    base = _fetchers()
+    statements_started = threading.Event()
+    overlapped: list[bool] = []
+
+    def statements(ticker):
+        statements_started.set()
+        return make_statements()
+
+    def prices(tickers, period, interval):
+        if tickers == ["ACME.PA"]:
+            overlapped.append(statements_started.wait(timeout=2))
+        return base.prices(tickers, period, interval)
+
+    fetchers = Fetchers(statements=statements, prices=prices, info=base.info)
+    got = analyze("ACME.PA", fetchers=fetchers, cache_dir=tmp_path)
+
+    assert overlapped[0] is True
+    assert got["coverage"] == "full"
+
+
+def test_an_index_that_cannot_load_marks_only_the_dcf_unavailable(tmp_path):
+    base = _fetchers()
+
+    def prices(tickers, period, interval):
+        if tickers[0].startswith("^"):
+            raise DataError("no prices returned for the index")
+        return base.prices(tickers, period, interval)
+
+    fetchers = Fetchers(statements=base.statements, prices=prices, info=base.info)
+    got = analyze("ACME.PA", fetchers=fetchers, cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "unavailable"
+    assert "index" in got["dcf"]["reason"]
+    assert got["health"]["status"] == "ok"

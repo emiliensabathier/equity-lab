@@ -14,6 +14,7 @@ import logging
 import math
 import threading
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -176,14 +177,28 @@ def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series
     return (both.iloc[:, 0] / both.iloc[:, 1]).rename(index)
 
 
+def _attempt(load: Callable[[], pd.Series]) -> Callable[[], pd.Series]:
+    """Run ``load`` now; the returned callable gives its result or re-raises its error later."""
+    try:
+        value = load()
+    except Exception as exc:  # noqa: BLE001 - re-raised where the section would have raised it
+        error = exc
+
+        def fail() -> pd.Series:
+            raise error
+
+        return fail
+    return lambda: value
+
+
 def _run_dcf(
     meta: CompanyMeta, statements: Statements, prices: pd.DataFrame,
-    fetchers: Fetchers, cache_dir: Path,
+    fetchers: Fetchers, cache_dir: Path, market_loader: Callable[[], pd.Series],
 ) -> CompanyResult:
     ccy = meta.company.reporting_currency
     if ccy not in RISK_FREE:
         raise DataError(f"no risk-free rate configured for {ccy}")
-    market = _market(meta, fetchers, cache_dir)
+    market = market_loader()
     # The filled statements are handed over through a fetcher with refresh=True, in a cache
     # directory of their own: the raw cache must keep the unfilled lines, or the next run would
     # find nothing to default and drop the matching limits.
@@ -359,7 +374,7 @@ def _header(ticker: str, meta: CompanyMeta) -> dict:
 
 def _sections(
     meta: CompanyMeta, raw: Statements, prices: pd.DataFrame, fetchers: Fetchers,
-    cache_dir: Path,
+    cache_dir: Path, market_loader: Callable[[], pd.Series],
 ) -> tuple[dict, dict, list[str]]:
     """The DCF and health sections plus the limits, each failure contained in its section."""
     health_filled: tuple[str, ...] = ()
@@ -374,7 +389,8 @@ def _sections(
     try:
         statements, filled = fill_defaults(raw)
         statements, carried, blank = fill_blank_years(statements)
-        dcf = _dcf_section(_run_dcf(meta, statements, prices, fetchers, cache_dir),
+        dcf = _dcf_section(_run_dcf(meta, statements, prices, fetchers, cache_dir,
+                                    market_loader),
                            meta.market_index, meta.company.reporting_currency)
     except (DataError, ValuationError) as exc:
         dcf = _unavailable(exc)
@@ -443,21 +459,30 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
     if meta.excluded_reason is not None:
         return _not_covered(header, meta.excluded_reason)
 
-    # A frame we cannot load is a whole-analysis failure; scaling builds a new frame. Prices are
-    # refetched on every run: vlab's cache keeps them a week, the analysis only a day.
-    prices = load_prices([ticker], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)
-    prices = prices * meta.price_scale
-    price = float(prices[ticker].iloc[-1])
-    try:
-        raw = load_statements(ticker, cache_dir=cache_dir, fetcher=fetchers.statements)
-    except DataError as exc:  # no statements at all: neither section can be computed
-        dcf = health = _unavailable(exc)
-        limits = _limits(meta, (), None)
-    else:
+    # The statements download in the background while this thread loads the prices: the
+    # slowest network calls overlap. Prices stay on this one thread because yfinance's
+    # download keeps module-level state that two concurrent downloads would share.
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="statements") as pool:
+        statements = pool.submit(
+            load_statements, ticker, cache_dir=cache_dir, fetcher=fetchers.statements
+        )
+        # A frame we cannot load is a whole-analysis failure; scaling builds a new frame. Prices
+        # are refetched on every run: vlab's cache keeps them a week, the analysis only a day.
+        prices = load_prices([ticker], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)
+        prices = prices * meta.price_scale
+        market_loader = _attempt(lambda: _market(meta, fetchers, cache_dir))
+        price = float(prices[ticker].iloc[-1])
+        try:
+            raw = statements.result()
+        except DataError as exc:  # no statements at all: neither section can be computed
+            raw = None
+            dcf = health = _unavailable(exc)
+            limits = _limits(meta, (), None)
+    if raw is not None:
         adr = _adr_reason(ticker, info, meta, raw)
         if adr is not None:
             return _not_covered(header, adr)
-        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir)
+        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir, market_loader)
     # Coverage ignores multiples: they depend on a weekly job, not on this company's own data.
     full = dcf["status"] == "ok" and health["status"] == "ok"
     return {
