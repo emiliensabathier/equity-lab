@@ -105,7 +105,13 @@ def _cmd_build_peers(args: argparse.Namespace) -> int:
         return 1
     existing = pd.read_parquet(path) if path.is_file() else None
     table = build_peer_table(tickers, default_fetchers().info, existing=existing)
-    table.to_parquet(path)
+    # The server reads the table while this job rewrites it: write aside, then swap atomically.
+    partial = path.with_name(path.name + ".tmp")
+    try:
+        table.to_parquet(partial)
+        os.replace(partial, path)
+    finally:
+        partial.unlink(missing_ok=True)
     log.info("peer table: %d rows -> %s", len(table), path)
     return 0
 

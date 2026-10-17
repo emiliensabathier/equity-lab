@@ -113,6 +113,33 @@ def test_build_peers_command_smoke(tmp_path, monkeypatch):
     assert (tmp_path / config.PEER_TABLE_FILE).is_file()
 
 
+def test_a_peer_table_write_that_fails_midway_leaves_the_previous_table(tmp_path, monkeypatch):
+    # The server reads the table while the weekly job rewrites it: a torn file must never show.
+    import pandas as pd
+
+    from elab import __main__ as cli
+    from elab import engine, peers
+
+    previous = pd.DataFrame({"ticker": ["OLD"], "name": ["Old"]})
+    previous.to_parquet(tmp_path / config.PEER_TABLE_FILE)
+    monkeypatch.setattr(config, "CONSTITUENT_SOURCES", config.CONSTITUENT_SOURCES[:1])
+    monkeypatch.setattr(peers, "constituents", lambda source: ["AAA"])
+    monkeypatch.setattr(engine, "default_fetchers", lambda: SimpleNamespace(info=lambda t: {}))
+    monkeypatch.setattr(peers, "build_peer_table", lambda tickers, info, existing=None: previous)
+
+    def torn(self, path, *args, **kwargs):
+        Path(path).write_bytes(b"half a file")
+        raise OSError("disk full")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", torn)
+    with pytest.raises(OSError):
+        cli.main(["build-peers", "--data-dir", str(tmp_path)])
+    monkeypatch.undo()
+
+    assert pd.read_parquet(tmp_path / config.PEER_TABLE_FILE).equals(previous)
+    assert [p.name for p in tmp_path.iterdir()] == [config.PEER_TABLE_FILE]
+
+
 def test_build_peers_command_fails_without_constituents(tmp_path, monkeypatch):
     from elab import __main__ as cli
     from elab import peers
