@@ -355,6 +355,11 @@ def test_plain_text_strips_markdown_markers():
     assert plain_text(raw) == "Heading\nWhat the price implies is growth.\npoint one\npoint two"
 
 
+def test_plain_text_replaces_em_and_en_dashes():
+    raw = "Margins fell — from 25.9% to 22.1% — over 2022–2025."
+    assert plain_text(raw) == "Margins fell, from 25.9% to 22.1%, over 2022 to 2025."
+
+
 def test_worker_serves_text_without_markdown(tmp_path):
     worker = make_worker(tmp_path, lambda p: "**Bold** " + GOOD)
     worker.request(ANALYSIS)

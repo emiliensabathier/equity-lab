@@ -5,8 +5,8 @@ const SEARCH_DEBOUNCE_MS = 250;
 const NARRATIVE_POLL_MS = 5000;
 const NARRATIVE_MAX_MS = 180000;
 const NETWORK_MESSAGE = "Data source unavailable, try again in a minute.";
-const NARRATIVE_FAILED = "Written analysis unavailable right now; the figures above are complete.";
-const NARRATIVE_LATER = "The written analysis is still being produced; reload in a few minutes.";
+const NARRATIVE_FAILED = "The written analysis is unavailable right now. The figures above are complete.";
+const NARRATIVE_LATER = "The written analysis is still being produced. Reload in a few minutes.";
 const REPO_URL = "https://github.com/emiliensabathier/equity-lab";
 const VLAB_URL = "https://github.com/emiliensabathier/valuation-lab";
 const NA = "n/a";
@@ -64,6 +64,15 @@ function money(v, ccy) {
 
 function day(iso) {
   return typeof iso === "string" && iso ? iso.slice(0, 10) : NA;
+}
+
+// Server text cached before the punctuation rules still carries dashes and semicolons.
+function plain(text) {
+  if (typeof text !== "string") return text;
+  return text
+    .replace(/(\d)\s*[–—]\s*(\d)/g, "$1 to $2")
+    .replace(/\s*[–—]\s*/g, ", ")
+    .replace(/; ([a-z])/g, (m, c) => ". " + c.toUpperCase());
 }
 
 // ---------- DOM helpers ----------
@@ -145,7 +154,7 @@ function showMatches(found, q) {
   found.forEach((m, i) => {
     const li = el("li", { role: "option", id: "m" + i, "aria-selected": "false" },
       el("span", { class: "m-name" }, m.name),
-      el("span", { class: "m-meta" }, `${m.ticker} · ${m.exchange}`));
+      el("span", { class: "m-meta" }, `${m.ticker}, ${m.exchange}`));
     li.addEventListener("mousedown", (e) => { e.preventDefault(); choose(i); });
     list.append(li);
   });
@@ -279,7 +288,7 @@ async function loadAnalysis(ticker, typed) {
   report.hidden = true;
   report.replaceChildren();
   $("toc").hidden = true;
-  setStatus("Analysing " + ticker + "… a first run can take up to a minute.", false, true);
+  setStatus("Analysing " + ticker + ". A first run can take up to a minute.", false, true);
   try {
     const res = await fetch("/api/analysis/" + encodeURIComponent(ticker), { signal: mine.signal });
     const body = await res.json();
@@ -294,7 +303,7 @@ async function loadAnalysis(ticker, typed) {
     history.replaceState(null, "", "?t=" + encodeURIComponent(body.ticker || ticker));
     setStatus("", false);
     render(body);
-    document.title = `${body.name || ticker} · equity-lab`;
+    document.title = `${body.name || ticker} | equity-lab`;
   } catch (err) {
     if (err.name === "AbortError") return;
     setStatus(NETWORK_MESSAGE, true);
@@ -351,8 +360,8 @@ function render(a) {
   report.append(withId(guarded("Multiples vs peers", () => multiplesCard(a.multiples, a)), "multiples"));
   report.append(withId(guarded("Financial health", () => healthCard(a.health, a)), "health"));
   report.append(el("section", { class: "narrative", id: "narrative" },
-    el("h2", {}, "Written analysis", el("span", { class: "narrative-tag" }, "Claude")),
-    el("p", { id: "narrative-body", class: "unavailable pending" }, "Analysis being written…")));
+    el("h2", {}, "Written analysis"),
+    el("p", { id: "narrative-body", class: "unavailable pending" }, "The written analysis is on its way.")));
   report.append(withId(guarded("Limits of this analysis", () => limitsCard(a.limits)), "limits"));
   renderToc();
   guardedFooter(a);
@@ -382,12 +391,12 @@ function kpi(label, value) {
 }
 
 function verdictCard(a) {
-  const sentence = a.verdict
-    || "The reverse DCF could not be computed for this company; see the sections below.";
+  const sentence = plain(a.verdict)
+    || "The reverse DCF could not be computed for this company. The sections below still apply.";
   const figure = a.dcf && a.dcf.status === "ok" ? impliedAverage(a.dcf) : NA;
   return el("section", { class: "verdict" },
     el("h2", { class: "name" }, a.name || a.ticker,
-      el("span", {}, ` ${a.ticker} · ${a.exchange}`)),
+      el("span", {}, ` ${a.ticker}, ${a.exchange}`)),
     el("p", { class: "sentence" }, ...highlightFigure(sentence, figure)),
     a.dcf && a.dcf.status === "ok" ? gauge(a.dcf) : null,
     el("dl", { class: "kpis" },
@@ -517,13 +526,13 @@ function multiplesCard(m, a) {
   });
   const rows = [
     row(a.ticker + " (this company)", m.company || {}, "company", a.trading_currency),
-    ...(m.peers || []).map((p) => row(`${p.name || p.ticker} · ${p.ticker}`, p)),
+    ...(m.peers || []).map((p) => row(`${p.name || p.ticker} (${p.ticker})`, p)),
     row("Peer median", m.median || {}, "median"),
   ];
   return card("Multiples vs peers",
     el("p", { class: "note" }, `Peers chosen by ${m.basis || "industry"}, nearest by market cap.`),
     table(null, ["Company", "Mkt cap", "EV/EBITDA", "EV/Sales", "P/E"], rows),
-    m.note ? el("p", { class: "note" }, m.note) : null);
+    m.note ? el("p", { class: "note" }, plain(m.note)) : null);
 }
 
 function chartColors() {
@@ -613,15 +622,15 @@ function healthCard(h, a) {
 function limitsCard(limits) {
   const items = Array.isArray(limits) ? limits : [];
   return card("Limits of this analysis",
-    el("ul", { class: "limits" }, ...items.map((t) => el("li", {}, t))));
+    el("ul", { class: "limits" }, ...items.map((t) => el("li", {}, plain(t)))));
 }
 
 function renderFooter(a) {
   $("footer").replaceChildren(
     `Data: Yahoo Finance via yfinance, as of ${day(a.as_of)}. `,
-    el("a", { href: REPO_URL, rel: "noopener" }, "equity-lab on GitHub"), " · ",
+    el("a", { href: REPO_URL, rel: "noopener" }, "equity-lab on GitHub"), ", ",
     el("a", { href: VLAB_URL, rel: "noopener" }, "valuation-lab"),
-    " · Not investment advice.");
+    ". Not investment advice.");
 }
 
 // ---------- narrative ----------
@@ -631,7 +640,7 @@ function narrativeText(text) {
   if (!body) return;
   const box = body.parentNode;
   body.remove();
-  String(text).split(/\n{2,}/).filter((p) => p.trim())
+  plain(String(text)).split(/\n{2,}/).filter((p) => p.trim())
     .forEach((p) => box.append(el("p", {}, p.trim())));
 }
 
@@ -681,7 +690,7 @@ function pollNarrative(ticker) {
 // ---------- boot ----------
 
 $("footer").replaceChildren("Data: Yahoo Finance via yfinance. ",
-  el("a", { href: REPO_URL, rel: "noopener" }, "equity-lab on GitHub"), " · ",
+  el("a", { href: REPO_URL, rel: "noopener" }, "equity-lab on GitHub"), ", ",
   el("a", { href: VLAB_URL, rel: "noopener" }, "valuation-lab"));
 
 const initial = new URLSearchParams(location.search).get("t");

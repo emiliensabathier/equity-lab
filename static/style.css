@@ -194,8 +194,6 @@ tr.company th, tr.company td { color: var(--pen); font-weight: 600; }
 .narrative p { margin: 0 0 16px; max-width: 64ch; font: 400 1.14rem/1.7 var(--serif); font-variation-settings: "opsz" 18; }
 .narrative p:last-child { margin-bottom: 0; }
 .narrative p.unavailable { font: italic .95rem var(--sans); }
-.narrative-tag { display: block; margin-top: 4px; font: 400 .82rem var(--sans); color: var(--muted); }
-.narrative-tag::before { content: "drafted by "; }
 .pending { display: flex; align-items: center; gap: 10px; }
 .pending::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--pen); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .25; } }

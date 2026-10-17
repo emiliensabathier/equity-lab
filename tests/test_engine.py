@@ -92,7 +92,7 @@ def test_analyze_full_coverage_returns_verdict_and_sections(tmp_path):
     assert len(dcf["margin_sensitivity"]["cols"]) == 5
     assert got["verdict"] == (
         f"At {LAST_PRICE:,.2f} EUR, the market prices {dcf['implied_average_growth']:.1%} "
-        f"average revenue growth over five years; the company's normalized history, faded "
+        f"average revenue growth over five years. The company's normalized history, faded "
         f"the same way, averages {dcf['normalized_average_growth']:.1%} over five years."
     )
     health = got["health"]
@@ -105,10 +105,10 @@ def test_analyze_full_coverage_returns_verdict_and_sections(tmp_path):
     assert latest["net_debt_to_ebitda"] == pytest.approx((300.0 - 80.0 - 120.0) / 250.0)
     assert got["multiples"] == {"status": "unavailable", "reason": "peer table not built yet"}
     assert got["limits"] == [
-        f"Equity risk premium fixed at 5%; risk-free rate {RISK_FREE['EUR']:.2%} for EUR "
+        f"Equity risk premium fixed at 5%, risk-free rate {RISK_FREE['EUR']:.2%} for EUR "
         "(as of 2026-10-16).",
         "Beta regressed on weekly returns against ^FCHI over five years.",
-        "Normalized drivers are medians over the reported years (2022–2025).",
+        "Normalized drivers are medians over the reported years, 2022 to 2025.",
     ]
 
 
@@ -221,8 +221,8 @@ def test_a_price_above_the_bracket_still_gets_a_verdict_naming_the_side(tmp_path
     assert dcf["implied_growth_bound"] == pytest.approx(0.50)
     assert got["verdict"] == (
         "At 1,000,000.00 EUR, the price implies more than 26.0% average revenue growth over "
-        "five years \u2014 the highest rate this model can solve for (50% in the first year, "
-        "fading to 2%) \u2014 so it cannot say how much more. The company's normalized history, "
+        "five years. That is the highest rate this model can solve for (50% in the first year, "
+        "fading to 2%), so it cannot say how much more. The company's normalized history, "
         f"faded the same way, averages {dcf['normalized_average_growth']:.1%} over five years."
     )
 
@@ -234,8 +234,8 @@ def test_a_price_below_the_bracket_gets_a_verdict_naming_the_floor(tmp_path):
     assert got["dcf"]["implied_average_growth_bound"] == pytest.approx(-0.09)
     assert got["verdict"].startswith(
         "At 0.01 EUR, the price implies less than -9.0% average revenue growth over five "
-        "years \u2014 the lowest rate this model can solve for (-20% in the first year, "
-        "fading to 2%) \u2014 so it cannot say how much less."
+        "years. That is the lowest rate this model can solve for (-20% in the first year, "
+        "fading to 2%), so it cannot say how much less."
     )
 
 
@@ -309,8 +309,8 @@ def test_a_september_year_end_priced_before_the_next_filing_is_valued(tmp_path):
     assert got["dcf"]["status"] == "ok"
     assert got["coverage"] == "full"
     assert (
-        "Latest annual report is for fiscal year ending 2025-09-30; balance sheet and share "
-        "count are more than 12 months old."
+        "Latest annual report is for fiscal year ending 2025-09-30. The balance sheet and "
+        "share count are more than 12 months old."
     ) in got["limits"]
 
 
@@ -412,8 +412,8 @@ def test_an_index_and_rate_with_no_common_dates_is_named_in_the_reason(tmp_path)
 
     assert got["dcf"]["status"] == "unavailable"
     assert got["dcf"]["reason"] == (
-        "no dates overlap between ^FTSE and the USDGBP=X history; cannot convert the index "
-        "to USD for the beta regression"
+        "no dates overlap between ^FTSE and the USDGBP=X history, so the index cannot be "
+        "converted to USD for the beta regression"
     )
 
 
@@ -543,7 +543,7 @@ def test_analyze_driver_window_ignores_year_without_revenue(tmp_path):
     got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
 
     assert got["limits"][-1] == (
-        "Normalized drivers are medians over the reported years (2022–2025)."
+        "Normalized drivers are medians over the reported years, 2022 to 2025."
     )
 
 

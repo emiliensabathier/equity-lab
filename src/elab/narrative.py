@@ -39,7 +39,9 @@ RULES = (
     "billions or millions (e.g. 263.3 billion). The DCF runs in the reporting currency, so the "
     "risk-free rate matches that currency; that is not a mismatch. Write plain text: no "
     "Markdown, no headings, no bullet points. Do not quote JSON field names; describe them in "
-    "words."
+    "words. Write like a plain-spoken analyst: short declarative sentences, no em dashes or en "
+    "dashes, no semicolons, no rhetorical questions, and no filler such as 'notably', 'it is "
+    "worth noting', 'in summary', 'overall' or 'not just X but Y'."
 )
 SCALE_EXPONENTS = (3, 6, 9, 12)
 
@@ -159,11 +161,15 @@ class ClaudeRunner:
 
 
 _MARKUP = re.compile(r"\*\*|__|`|^#+\s*|^\s*[-*]\s+", re.MULTILINE)
+# Em and en dashes read as machine prose: ranges become "to", asides become commas.
+_DASH_RANGE = re.compile(r"(\d)\s*[–—]\s*(\d)")
+_DASH = re.compile(r"\s*[–—]\s*")
 
 
 def plain_text(text: str) -> str:
     """Drop Markdown markers the page would show literally (it renders with textContent)."""
-    return _MARKUP.sub("", text).strip()
+    text = _DASH_RANGE.sub(r"\1 to \2", _MARKUP.sub("", text))
+    return _DASH.sub(", ", text).strip()
 
 
 class NarrativeWorker:

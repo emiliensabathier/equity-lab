@@ -155,5 +155,5 @@ def test_carried_sentence_names_the_line_and_the_years():
         "Interest Expense not reported for 2025: 2024 value used."
     )
     assert carried_sentence("Capital Lease Obligations", (2024, 2025), 2023) == (
-        "Capital Lease Obligations not reported for 2024\u20132025: 2023 value used."
+        "Capital Lease Obligations not reported for 2024 to 2025: 2023 value used."
     )

@@ -64,7 +64,7 @@ def carried_sentence(line: str, years: tuple[int, ...], source: int) -> str:
     """The sentence shown in the page's limits for a line carried from an earlier year."""
     contiguous = list(years) == list(range(years[0], years[-1] + 1))
     span = (
-        f"{years[0]}\u2013{years[-1]}" if contiguous and len(years) > 1
+        f"{years[0]} to {years[-1]}" if contiguous and len(years) > 1
         else ", ".join(str(year) for year in years)
     )
     return f"{line} not reported for {span}: {source} value used."

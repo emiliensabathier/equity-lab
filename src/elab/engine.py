@@ -170,8 +170,8 @@ def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series
     both = pd.concat([market, fx], axis=1, join="inner").dropna()
     if both.empty:
         raise DataError(
-            f"no dates overlap between {index} and the {pair} history; cannot convert the "
-            f"index to {trading} for the beta regression"
+            f"no dates overlap between {index} and the {pair} history, so the index cannot be "
+            f"converted to {trading} for the beta regression"
         )
     return (both.iloc[:, 0] / both.iloc[:, 1]).rename(index)
 
@@ -272,8 +272,8 @@ def _age_sentence(income: pd.DataFrame | None, price_date: pd.Timestamp | None) 
     if (price_date - pd.Timestamp(year_end)).days / DAYS_PER_YEAR <= MAX_VALUATION_LAG:
         return []
     return [
-        f"Latest annual report is for fiscal year ending {year_end}; balance sheet and share "
-        "count are more than 12 months old."
+        f"Latest annual report is for fiscal year ending {year_end}. The balance sheet and "
+        "share count are more than 12 months old."
     ]
 
 
@@ -285,7 +285,7 @@ def _limits(
     """Every assumption the page rests on; the drivers window only when statements loaded."""
     ccy = meta.company.reporting_currency
     rf_sentence = (
-        f"Equity risk premium fixed at 5%; risk-free rate {RISK_FREE[ccy]:.2%} for {ccy} "
+        f"Equity risk premium fixed at 5%, risk-free rate {RISK_FREE[ccy]:.2%} for {ccy} "
         f"(as of {RISK_FREE_DATE})."
         if ccy in RISK_FREE
         else f"No risk-free rate configured for {ccy}."
@@ -313,7 +313,7 @@ def _limits(
     years = _window(income)
     if years:
         limits.append(
-            f"Normalized drivers are medians over the reported years ({years[0]}–{years[-1]})."
+            f"Normalized drivers are medians over the reported years, {years[0]} to {years[-1]}."
         )
     return limits
 
@@ -323,10 +323,10 @@ def _beyond_bracket(price: float, ccy: str, dcf: dict) -> str:
     more, edge = ("more", "highest") if above else ("less", "lowest")
     return (
         f"At {price:,.2f} {ccy}, the price implies {more} than "
-        f"{dcf['implied_average_growth_bound']:.1%} average revenue growth over five years "
-        f"\u2014 the {edge} rate this model can solve for "
+        f"{dcf['implied_average_growth_bound']:.1%} average revenue growth over five years. "
+        f"That is the {edge} rate this model can solve for "
         f"({dcf['implied_growth_bound']:.0%} in the first year, fading to "
-        f"{TERMINAL_GROWTH:.0%}) \u2014 so it cannot say how much {more}. The company's "
+        f"{TERMINAL_GROWTH:.0%}), so it cannot say how much {more}. The company's "
         f"normalized history, faded the same way, averages "
         f"{dcf['normalized_average_growth']:.1%} over five years."
     )
@@ -339,7 +339,7 @@ def _verdict(price: float, ccy: str, dcf: dict) -> str | None:
         return _beyond_bracket(price, ccy, dcf)
     return (
         f"At {price:,.2f} {ccy}, the market prices {dcf['implied_average_growth']:.1%} "
-        f"average revenue growth over five years; the company's normalized history, faded "
+        f"average revenue growth over five years. The company's normalized history, faded "
         f"the same way, averages {dcf['normalized_average_growth']:.1%} over five years."
     )
 

@@ -29,8 +29,8 @@ from elab.resolve import MAX_QUERY, MIN_QUERY, UnknownTicker, search
 
 log = logging.getLogger(__name__)
 
-RATE_LIMIT_MESSAGE = "Too many new analyses from this address; cached companies stay available."
-SEARCH_RATE_MESSAGE = "Too many searches from this address; try again in a minute."
+RATE_LIMIT_MESSAGE = "Too many new analyses from this address. Companies already analysed stay available."
+SEARCH_RATE_MESSAGE = "Too many searches from this address. Try again in a minute."
 UNAVAILABLE_MESSAGE = "Data source unavailable, try again in a minute."
 LOOPBACK = frozenset({"127.0.0.1", "::1", "::ffff:127.0.0.1"})
 _TICKER = re.compile(config.TICKER_PATTERN)

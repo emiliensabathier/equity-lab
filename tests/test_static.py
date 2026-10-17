@@ -57,4 +57,4 @@ def test_page_labels_the_weekly_close_by_its_week():
 
 def test_page_says_to_reload_when_the_narrative_poll_gives_up():
     js = (STATIC / "app.js").read_text("utf-8")
-    assert "The written analysis is still being produced; reload in a few minutes." in js
+    assert "The written analysis is still being produced. Reload in a few minutes." in js
