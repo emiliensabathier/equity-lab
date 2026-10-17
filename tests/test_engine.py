@@ -248,16 +248,43 @@ def test_a_cross_currency_listing_beyond_the_bracket_states_its_trading_price(tm
     assert "EUR" not in got["verdict"]
 
 
-def test_a_likely_adr_is_not_covered_and_fetches_no_prices(tmp_path):
-    def boom(*args, **kwargs):
-        raise AssertionError("an ADR must not be valued")
+ORDINARY_SHARES = 100.0  # latest "Ordinary Shares Number" in the conftest balance sheet
 
-    info = _info(currency="USD", financialCurrency="GBP", exchange="NYQ")
-    got = analyze("SHEL", fetchers=Fetchers(boom, boom, lambda t: info), cache_dir=tmp_path)
+
+def _us_listing(country: str, listed_shares: float | None, reporting: str = "USD") -> dict:
+    return _info(currency="USD", financialCurrency=reporting, exchange="NYQ", country=country,
+                 sharesOutstanding=listed_shares)
+
+
+def test_a_foreign_us_listing_whose_unit_holds_two_ordinary_shares_is_an_adr(tmp_path):
+    # Shell: the accounts count about 5.9bn ordinary shares, Yahoo 2.84bn listed ADRs.
+    info = _us_listing("United Kingdom", ORDINARY_SHARES / 2.08)
+    got = analyze("SHEL", fetchers=_fetchers(info=info), cache_dir=tmp_path)
 
     assert got["coverage"] == "not_covered"
-    assert got["verdict"] is None
-    assert "likely an ADR" in got["limits"][0]
+    assert got["verdict"] is None and "dcf" not in got
+    assert got["limits"] == [
+        "This US listing looks like an ADR: one listed share is about 2.08 ordinary shares, "
+        "but the accounts count ordinary shares. Search the home listing instead."
+    ]
+
+
+def test_a_foreign_us_listing_of_one_ordinary_share_each_is_covered(tmp_path):
+    info = _us_listing("Germany", ORDINARY_SHARES, reporting="EUR")
+    got = analyze("SAP", fetchers=_fetchers(info=info), cache_dir=tmp_path)
+
+    assert got["coverage"] == "full"
+
+
+def test_a_us_company_is_never_taken_for_an_adr(tmp_path):
+    info = _us_listing("United States", ORDINARY_SHARES / 2.08)
+    assert analyze("ACME", fetchers=_fetchers(info=info), cache_dir=tmp_path)["coverage"] == "full"
+
+
+@pytest.mark.parametrize("listed", [None, 0.0])
+def test_the_adr_check_is_skipped_without_a_listed_share_count(tmp_path, listed):
+    info = _us_listing("United Kingdom", listed)
+    assert analyze("SHEL", fetchers=_fetchers(info=info), cache_dir=tmp_path)["coverage"] == "full"
 
 
 def _with_years(statements, years: list[str]):

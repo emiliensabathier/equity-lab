@@ -60,15 +60,12 @@ def test_company_from_info_keeps_trading_and_reporting_currencies_distinct():
     assert meta.excluded_reason is None
 
 
-def test_a_us_listing_reporting_in_another_currency_is_refused_as_a_likely_adr():
-    # The ADR price covers a different number of shares than the accounts (SHEL: 2 per ADR).
-    info = {"quoteType": "EQUITY", "longName": "Shell plc", "currency": "USD",
-            "financialCurrency": "GBP", "sector": "Energy", "exchange": "NYQ"}
-    meta = company_from_info("SHEL", info)
-    assert meta.excluded_reason == (
-        "This US listing reports in GBP; it is likely an ADR, whose price covers a different "
-        "number of shares than the accounts. Search the home listing instead."
-    )
+def test_a_us_listing_reporting_in_another_currency_is_not_refused_on_currency_alone():
+    # SAP and ASML list one ordinary share per US share; ADRs are told apart by share count in
+    # the engine, where the accounts are loaded.
+    info = {"quoteType": "EQUITY", "longName": "SAP SE", "currency": "USD",
+            "financialCurrency": "EUR", "sector": "Technology", "exchange": "NYQ"}
+    assert company_from_info("SAP", info).excluded_reason is None
 
 
 def test_a_us_listing_reporting_in_dollars_is_covered():

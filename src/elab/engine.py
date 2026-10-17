@@ -23,8 +23,10 @@ from vlab.data.loader import (
     PriceFetcher,
     StatementFetcher,
     Statements,
+    latest,
     load_prices,
     load_statements,
+    require,
 )
 from vlab.dcf import MAX_VALUATION_LAG, Assumptions, growth_path
 from vlab.errors import DataError, ValuationError
@@ -36,6 +38,7 @@ from elab.config import (
     PEER_TABLE_FILE,
     RISK_FREE,
     RISK_FREE_DATE,
+    US_EXCHANGES,
 )
 from elab.locks import file_lock
 from elab.peers import peers_for
@@ -55,6 +58,9 @@ log = logging.getLogger(__name__)
 _LOCK = threading.Lock()
 ENGINE_LOCK_FILE = "engine.lock"
 
+# A foreign company on a US exchange whose listed unit is not one ordinary share is an ADR: its
+# price covers a different number of shares than the accounts. Beyond buyback drift, refused.
+ADR_RATIO_RANGE = (0.8, 1.25)
 UNAVAILABLE_MULTIPLES = {"status": "unavailable", "reason": "peer table not built yet"}
 
 
@@ -397,13 +403,43 @@ def _multiples(ticker: str, info: dict, meta: CompanyMeta, cache_dir: Path) -> d
         return _unavailable(RuntimeError("peer table could not be read"))
 
 
+def _adr_reason(ticker: str, info: dict, meta: CompanyMeta, raw: Statements) -> str | None:
+    """Why a foreign US listing is refused as an ADR, or None (also when a count is missing).
+
+    Yahoo's ``sharesOutstanding`` counts listed units; the accounts count ordinary shares, the
+    figure the DCF divides by.
+    """
+    country = info.get("country")
+    if meta.exchange not in US_EXCHANGES or not country or country == "United States":
+        return None
+    listed = float(info.get("sharesOutstanding") or 0.0)
+    try:
+        ordinary = latest(require(raw.balance, "Ordinary Shares Number", ticker),
+                          "Ordinary Shares Number", ticker)
+    except DataError:
+        return None
+    if not (math.isfinite(listed) and listed > 0.0 and math.isfinite(ordinary) and ordinary > 0.0):
+        return None
+    ratio = ordinary / listed
+    if ADR_RATIO_RANGE[0] <= ratio <= ADR_RATIO_RANGE[1]:
+        return None
+    return (
+        f"This US listing looks like an ADR: one listed share is about {ratio:.2f} ordinary "
+        "shares, but the accounts count ordinary shares. Search the home listing instead."
+    )
+
+
+def _not_covered(header: dict, reason: str) -> dict:
+    return {**header, "price": None, "price_date": None, "coverage": "not_covered",
+            "verdict": None, "limits": [reason]}
+
+
 def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
     info = fetchers.info(ticker)
     meta = company_from_info(ticker, info)
     header = _header(ticker, meta)
     if meta.excluded_reason is not None:
-        return {**header, "price": None, "price_date": None, "coverage": "not_covered",
-                "verdict": None, "limits": [meta.excluded_reason]}
+        return _not_covered(header, meta.excluded_reason)
 
     # A frame we cannot load is a whole-analysis failure; scaling builds a new frame. Prices are
     # refetched on every run: vlab's cache keeps them a week, the analysis only a day.
@@ -416,6 +452,9 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
         dcf = health = _unavailable(exc)
         limits = _limits(meta, (), None)
     else:
+        adr = _adr_reason(ticker, info, meta, raw)
+        if adr is not None:
+            return _not_covered(header, adr)
         dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir)
     # Coverage ignores multiples: they depend on a weekly job, not on this company's own data.
     full = dcf["status"] == "ok" and health["status"] == "ok"

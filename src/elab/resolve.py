@@ -2,8 +2,7 @@
 
 Trading and reporting currency are kept apart on purpose: Richemont trades in CHF but reports
 in EUR, and a London listing quotes in pence while reporting in pounds. Mixing them silently
-would misstate every per-share figure. A US listing reporting in another currency is refused as
-a likely ADR, whose price covers a different number of shares than the accounts.
+would misstate every per-share figure. ADRs are told apart in the engine, by share count.
 """
 
 from __future__ import annotations
@@ -154,12 +153,6 @@ def company_from_info(ticker: str, info: dict) -> CompanyMeta:
         excluded = (
             f"{sector} companies are not covered: a free-cash-flow DCF does not apply "
             "to balance-sheet businesses."
-        )
-    elif is_us and reporting != "USD":
-        # No ADR ratio is known: a per-share value from the accounts is not comparable with it.
-        excluded = (
-            f"This US listing reports in {reporting}; it is likely an ADR, whose price covers "
-            "a different number of shares than the accounts. Search the home listing instead."
         )
     elif not is_us and suffix not in INDEX_BY_SUFFIX and suffix not in FALLBACK_SUFFIXES:
         excluded = NOT_COVERED_MARKET
