@@ -53,3 +53,33 @@ def fill_defaults(s: Statements) -> tuple[Statements, tuple[str, ...]]:
             filled.append(line)
         frames[name] = frame
     return replace(s, **frames, info=dict(s.info)), tuple(filled)
+
+
+def blank_years_sentence(line: str) -> str:
+    """The sentence shown in the page's limits for a line zeroed in some reported years."""
+    return f"{line} not reported for some years: treated as zero in those years."
+
+
+def fill_blank_years(s: Statements) -> tuple[Statements, tuple[str, ...]]:
+    """Return statements with blank cells of defaultable lines set to zero, plus the lines filled.
+
+    A source can keep a line for older years and leave the latest ones empty (Apple's leases
+    and interest). Only years where every core line of that statement is reported are filled,
+    so a year the company did not report stays blank. Core lines are never touched, and inputs
+    are never modified.
+    """
+    frames: dict[str, pd.DataFrame] = {}
+    filled: list[str] = []
+    for name in _FRAMES:
+        frame = getattr(s, name).copy()
+        core = [line for line in CORE_LINES[name] if line in frame.index]
+        reported = frame.loc[core].notna().all() if core else pd.Series(True, frame.columns)
+        for line in DEFAULTABLE_LINES[name]:
+            if line not in frame.index:
+                continue
+            blank = frame.loc[line].isna() & reported
+            if blank.any():
+                frame.loc[line, blank[blank].index] = 0.0
+                filled.append(line)
+        frames[name] = frame
+    return replace(s, **frames, info=dict(s.info)), tuple(filled)

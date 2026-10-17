@@ -57,6 +57,36 @@ INDEX_BY_SUFFIX: dict[str, str] = {
 }
 FALLBACK_INDEX = "^STOXX"
 
+# Quote currency of each benchmark, checked against yfinance's metadata on 2026-10-17. vlab
+# converts the stock into the reporting currency before regressing it; the index is converted
+# to the same currency here, or the beta also measures the exchange rate (Unilever, reporting
+# in EUR against the FTSE 100 in GBP, came out at 0.34 instead of 0.74 with both in EUR).
+INDEX_CURRENCY: dict[str, str] = {
+    "^GSPC": "USD",
+    "^FCHI": "EUR",
+    "^GDAXI": "EUR",
+    "^FTSE": "GBP",
+    "^SSMI": "CHF",
+    "^AEX": "EUR",
+    "^IBEX": "EUR",
+    "FTSEMIB.MI": "EUR",
+    "^OMX": "SEK",
+    "^BFX": "EUR",
+    "^OMXC25": "DKK",
+    "^OMXH25": "EUR",
+    "PSI20.LS": "EUR",
+    "^ATX": "EUR",
+    "^ISEQ": "EUR",
+    "^STOXX": "EUR",
+}
+
+# How long after the latest fiscal year-end a price may be compared with its statements. vlab's
+# default is one year; a site priced every day meets companies between their year-end's first
+# anniversary and the filing of the next annual report (a US 10-K is due within 60-90 days, the
+# EU allows four months, and yfinance takes some days more). Apple, priced on 2026-10-16 against
+# a 2025-09-30 year-end, sat at 1.03 years. Beyond 18 months the statements are stale.
+MAX_VALUATION_LAG_YEARS = 1.5
+
 EXCLUDED_SECTORS = frozenset({"Financial Services", "Real Estate"})
 
 TICKER_PATTERN = r"^[A-Z0-9][A-Z0-9.\-]{0,14}$"

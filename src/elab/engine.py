@@ -26,13 +26,27 @@ from vlab.data.loader import (
     load_prices,
     load_statements,
 )
+from vlab.dcf import Assumptions, growth_path
 from vlab.errors import DataError, ValuationError
-from vlab.pipeline import CompanyResult, value_company
+from vlab.fundamentals import drivers_from
+from vlab.pipeline import TERMINAL_GROWTH, CompanyResult, value_company
+from vlab.reverse import GrowthOutOfRange
 
-from elab.config import PEER_TABLE_FILE, RISK_FREE, RISK_FREE_DATE
+from elab.config import (
+    INDEX_CURRENCY,
+    MAX_VALUATION_LAG_YEARS,
+    PEER_TABLE_FILE,
+    RISK_FREE,
+    RISK_FREE_DATE,
+)
 from elab.peers import peers_for
 from elab.resolve import CompanyMeta, company_from_info
-from elab.statements import fill_defaults, limit_sentence
+from elab.statements import (
+    blank_years_sentence,
+    fill_blank_years,
+    fill_defaults,
+    limit_sentence,
+)
 
 log = logging.getLogger(__name__)
 
@@ -109,6 +123,36 @@ def _dcf_section(result: CompanyResult, index: str) -> dict:
     }
 
 
+def _index_conversion(meta: CompanyMeta) -> str | None:
+    """The reporting currency the index must be converted to, or None if it is already in it."""
+    reporting = meta.company.reporting_currency
+    return None if INDEX_CURRENCY[meta.market_index] == reporting else reporting
+
+
+def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series:
+    """The benchmark's weekly closes in the reporting currency, the one vlab moves the stock to."""
+    index = meta.market_index
+    market = load_prices([index], cache_dir=cache_dir, fetcher=fetchers.prices)[index]
+    reporting = _index_conversion(meta)
+    if reporting is None:
+        return market
+    pair = f"{reporting}{INDEX_CURRENCY[index]}=X"  # index currency per unit of reporting
+    fx = load_prices([pair], cache_dir=cache_dir, fetcher=fetchers.prices)[pair]
+    both = pd.concat([market, fx], axis=1, join="inner").dropna()
+    return (both.iloc[:, 0] / both.iloc[:, 1]).rename(index)
+
+
+def _bracket_miss(exc: GrowthOutOfRange, statements: Statements, ticker: str) -> dict:
+    """The DCF section when the price lies beyond the growth bracket: which side, and how far."""
+    path = growth_path(Assumptions(exc.bound, 0.0, TERMINAL_GROWTH, 1.0))
+    return {
+        **_unavailable(exc),
+        "implied_growth_side": exc.side,
+        "implied_average_growth_bound": sum(path) / len(path),
+        "normalized_growth": drivers_from(statements, ticker).revenue_growth,
+    }
+
+
 def _run_dcf(
     meta: CompanyMeta, statements: Statements, prices: pd.DataFrame,
     fetchers: Fetchers, cache_dir: Path,
@@ -116,8 +160,7 @@ def _run_dcf(
     ccy = meta.company.reporting_currency
     if ccy not in RISK_FREE:
         raise DataError(f"no risk-free rate configured for {ccy}")
-    index = meta.market_index
-    market = load_prices([index], cache_dir=cache_dir, fetcher=fetchers.prices)[index]
+    market = _market(meta, fetchers, cache_dir)
     # The filled statements are handed over through a fetcher with refresh=True, in a cache
     # directory of their own: the raw cache must keep the unfilled lines, or the next run would
     # find nothing to default and drop the matching limits.
@@ -126,6 +169,7 @@ def _run_dcf(
         cache_dir=cache_dir / "filled", refresh=True,
         statement_fetcher=lambda _ticker: statements,
         price_fetcher=fetchers.prices, risk_free=RISK_FREE[ccy],
+        max_valuation_lag=MAX_VALUATION_LAG_YEARS,
     )
 
 
@@ -194,7 +238,8 @@ def _window(income: pd.DataFrame | None) -> list[int]:
 
 
 def _limits(
-    meta: CompanyMeta, filled: tuple[str, ...], income: pd.DataFrame | None
+    meta: CompanyMeta, filled: tuple[str, ...], income: pd.DataFrame | None,
+    blank: tuple[str, ...] = (),
 ) -> list[str]:
     """Every assumption the page rests on; the drivers window only when statements loaded."""
     ccy = meta.company.reporting_currency
@@ -204,10 +249,16 @@ def _limits(
         if ccy in RISK_FREE
         else f"No risk-free rate configured for {ccy}."
     )
+    converted = _index_conversion(meta)
+    beta_sentence = (
+        f"Beta regressed on weekly returns against {meta.market_index} over five years"
+        + (f", with both series converted to {converted}." if converted else ".")
+    )
     limits = [
+        *(blank_years_sentence(line) for line in blank),
         *(limit_sentence(line) for line in filled),
         rf_sentence,
-        f"Beta regressed on weekly returns against {meta.market_index} over five years.",
+        beta_sentence,
     ]
     years = _window(income)
     if years:
@@ -218,6 +269,14 @@ def _limits(
 
 
 def _verdict(price: float, ccy: str, dcf: dict) -> str | None:
+    if "implied_growth_side" in dcf:
+        more_or_less = "more" if dcf["implied_growth_side"] == "above" else "less"
+        return (
+            f"At {price:,.2f} {ccy}, the market prices {more_or_less} than "
+            f"{dcf['implied_average_growth_bound']:.1%} average revenue growth over five "
+            f"years, beyond the range the model solves for; the company's normalized history "
+            f"is {dcf['normalized_growth']:.1%}."
+        )
     if dcf["status"] != "ok":
         return None
     return (
@@ -252,14 +311,19 @@ def _sections(
     except (DataError, ValuationError) as exc:
         health = _unavailable(exc)
     filled: tuple[str, ...] = ()
+    blank: tuple[str, ...] = ()
+    statements = raw
     try:
         statements, filled = fill_defaults(raw)
+        statements, blank = fill_blank_years(statements)
         dcf = _dcf_section(_run_dcf(meta, statements, prices, fetchers, cache_dir),
                            meta.market_index)
+    except GrowthOutOfRange as exc:
+        dcf = _bracket_miss(exc, statements, meta.company.ticker)
     except (DataError, ValuationError) as exc:
         dcf = _unavailable(exc)
     defaulted = filled + tuple(line for line in health_filled if line not in filled)
-    return dcf, health, _limits(meta, defaulted, raw.income)
+    return dcf, health, _limits(meta, defaulted, raw.income, blank)
 
 
 def _multiples(ticker: str, info: dict, meta: CompanyMeta, cache_dir: Path) -> dict:

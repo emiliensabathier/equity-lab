@@ -190,8 +190,139 @@ def test_analyze_implied_growth_outside_bracket_is_unavailable_not_raised(tmp_pa
 
     assert got["dcf"]["status"] == "unavailable"
     assert "reproduces a price" in got["dcf"]["reason"]
-    assert got["verdict"] is None
     assert got["health"]["status"] == "ok"
+
+
+def test_a_price_above_the_bracket_still_gets_a_verdict_naming_the_side(tmp_path):
+    # The ceiling is 50% first-year growth fading to 2%: a 26% five-year average.
+    got = analyze("ACME.PA", fetchers=_fetchers(last_price=1e6), cache_dir=tmp_path)
+
+    dcf = got["dcf"]
+    assert dcf["implied_growth_side"] == "above"
+    assert dcf["implied_average_growth_bound"] == pytest.approx(0.26)
+    assert got["verdict"] == (
+        "At 1,000,000.00 EUR, the market prices more than 26.0% average revenue growth over "
+        "five years, beyond the range the model solves for; the company's normalized history "
+        f"is {dcf['normalized_growth']:.1%}."
+    )
+
+
+def test_a_price_below_the_bracket_gets_a_verdict_naming_the_floor(tmp_path):
+    got = analyze("ACME.PA", fetchers=_fetchers(last_price=0.01), cache_dir=tmp_path)
+
+    assert got["dcf"]["implied_growth_side"] == "below"
+    assert got["dcf"]["implied_average_growth_bound"] == pytest.approx(-0.09)
+    assert got["verdict"].startswith(
+        "At 0.01 EUR, the market prices less than -9.0% average revenue growth over five years"
+    )
+
+
+def _with_years(statements, years: list[str]):
+    index = pd.to_datetime(years)
+    return make_statements(
+        income=statements.income.set_axis(index, axis=1),
+        cashflow=statements.cashflow.set_axis(index, axis=1),
+        balance=statements.balance.set_axis(index, axis=1),
+    )
+
+
+SEPTEMBER_YEARS = ["2025-09-30", "2024-09-30", "2023-09-30", "2022-09-30"]
+
+
+def test_a_september_year_end_priced_before_the_next_filing_is_valued(tmp_path):
+    # Priced 2026-10-16 against a 2025-09-30 year-end: the FY2026 report is not out yet, so a
+    # lag just over a year is the normal state for weeks every autumn.
+    statements = _with_years(make_statements(), SEPTEMBER_YEARS)
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "ok"
+    assert got["coverage"] == "full"
+
+
+def test_statements_more_than_eighteen_months_old_are_refused(tmp_path):
+    statements = _with_years(
+        make_statements(), ["2025-03-31", "2024-03-31", "2023-03-31", "2022-03-31"]
+    )
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "unavailable"
+    assert "lag" in got["dcf"]["reason"]
+
+
+def _fx_series() -> pd.Series:
+    rng = np.random.default_rng(11)
+    return pd.Series(1.1 * np.cumprod(1.0 + rng.normal(0.0, 0.01, len(WEEKS))), index=WEEKS)
+
+
+def test_beta_is_measured_with_stock_and_index_in_the_reporting_currency(tmp_path):
+    # An ADR quoted in USD, reporting in EUR, benchmarked on the S&P 500 (USD): vlab converts
+    # the stock into EUR, so the index must be converted too, or the beta measures the
+    # exchange rate's co-movement with the index on top of the business.
+    from vlab.wacc import levered_beta
+
+    fx = _fx_series()
+    stock, index = _series(7, LAST_PRICE), _index_series()
+
+    def prices(tickers, period, interval):
+        series = {"EURUSD=X": fx, "^GSPC": index, "ACME": stock}
+        return pd.DataFrame({ticker: series[ticker] for ticker in tickers})
+
+    info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
+    fetchers = Fetchers(statements=lambda t: make_statements(), prices=prices,
+                        info=lambda t: info)
+    got = analyze("ACME", fetchers=fetchers, cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "ok"
+    assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock / fx, index / fx))
+    assert (
+        "Beta regressed on weekly returns against ^GSPC over five years, with both series "
+        "converted to EUR."
+    ) in got["limits"]
+
+
+def test_an_index_in_another_currency_is_converted_even_when_the_stock_is_not(tmp_path):
+    # A London listing quoted and reported in USD, benchmarked on the FTSE 100 (GBP).
+    from vlab.wacc import levered_beta
+
+    fx = _fx_series()
+    stock, index = _series(7, LAST_PRICE), _index_series()
+
+    def prices(tickers, period, interval):
+        series = {"USDGBP=X": fx, "^FTSE": index, "ACME.L": stock}
+        return pd.DataFrame({ticker: series[ticker] for ticker in tickers})
+
+    info = _info(currency="USD", financialCurrency="USD", exchange="LSE")
+    fetchers = Fetchers(statements=lambda t: make_statements(), prices=prices,
+                        info=lambda t: info)
+    got = analyze("ACME.L", fetchers=fetchers, cache_dir=tmp_path)
+
+    assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock, index / fx))
+
+
+def test_a_latest_year_left_blank_in_a_defaultable_line_is_zeroed_and_stated(tmp_path):
+    base = make_statements()
+    income, balance = base.income.copy(), base.balance.copy()
+    income.loc["Interest Expense", income.columns[0]] = np.nan
+    balance.loc["Capital Lease Obligations", balance.columns[0]] = np.nan
+    statements = make_statements(income=income, balance=balance)
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "ok"
+    assert got["limits"][:2] == [
+        "Interest Expense not reported for some years: treated as zero in those years.",
+        "Capital Lease Obligations not reported for some years: treated as zero in those years.",
+    ]
+
+
+def test_a_latest_year_left_blank_in_a_core_line_marks_dcf_unavailable(tmp_path):
+    base = make_statements()
+    balance = base.balance.copy()
+    balance.loc["Total Debt", balance.columns[0]] = np.nan
+    got = analyze("ACME.PA", fetchers=_fetchers(statements=make_statements(balance=balance)),
+                  cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "unavailable"
+    assert "Total Debt" in got["dcf"]["reason"]
 
 
 def test_analyze_uses_risk_free_of_reporting_currency(tmp_path):
@@ -315,3 +446,9 @@ def test_analyze_lists_lease_default_health_relies_on_when_dcf_fails(tmp_path):
     assert got["health"]["status"] == "ok"
     assert got["limits"][0] == "Capital Lease Obligations not reported: treated as zero."
     assert got["limits"].count("Capital Lease Obligations not reported: treated as zero.") == 1
+
+
+def test_every_benchmark_has_a_quote_currency():
+    from elab.config import FALLBACK_INDEX, INDEX_BY_SUFFIX, INDEX_CURRENCY
+
+    assert {*INDEX_BY_SUFFIX.values(), FALLBACK_INDEX} <= INDEX_CURRENCY.keys()
