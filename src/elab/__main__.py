@@ -77,7 +77,8 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     args.data_dir.mkdir(parents=True, exist_ok=True)
     cache = Cache(args.data_dir / "cache.sqlite")
     app = create_app(
-        fetchers=default_fetchers(), cache=cache, worker=NarrativeWorker(cache, ClaudeRunner()),
+        fetchers=default_fetchers(), cache=cache,
+        worker=NarrativeWorker(cache, ClaudeRunner(args.data_dir)),
         searcher=_yahoo_search, local_names=local_peer_names(args.data_dir),
         cache_dir=args.data_dir, static_dir=REPO_ROOT / "static",
     )
@@ -121,7 +122,7 @@ def _cmd_pregenerate(args: argparse.Namespace) -> int:
         config.PREGENERATE,
         analyze=lambda t: analyze(t, fetchers=fetchers, cache_dir=args.data_dir),
         cache=cache,
-        worker=NarrativeWorker(cache, ClaudeRunner()),
+        worker=NarrativeWorker(cache, ClaudeRunner(args.data_dir)),
     )
     return 0 if ok else 1
 

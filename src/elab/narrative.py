@@ -17,9 +17,11 @@ import subprocess
 import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from elab.cache import Cache
+from elab.locks import file_lock
 
 log = logging.getLogger(__name__)
 
@@ -110,22 +112,32 @@ def check_text(text: str, analysis: dict) -> list[str]:
 
 
 class ClaudeRunner:
-    def __init__(self, timeout_s: int = 240, run: Callable[..., Any] = subprocess.run) -> None:
+    """``claude -p`` with no tools, from an empty directory, one call at a time across processes
+    (the server and the pregenerate job share ``data_dir``)."""
+
+    def __init__(
+        self, data_dir: Path, timeout_s: int = 240, run: Callable[..., Any] = subprocess.run
+    ) -> None:
+        self._lock = data_dir / "claude.lock"
+        self._cwd = data_dir / "claude-cwd"
         self._timeout_s = timeout_s
         self._run = run
 
     def __call__(self, prompt: str) -> str:
         env = {k: v for k, v in os.environ.items() if k not in _STRIPPED_ENV}
         binary = shutil.which("claude") or "claude"  # claude.cmd on Windows
+        self._cwd.mkdir(parents=True, exist_ok=True)
         try:
-            proc = self._run(
-                [binary, "-p", "--model", "sonnet"],
-                input=prompt,
-                text=True,
-                capture_output=True,
-                timeout=self._timeout_s,
-                env=env,
-            )
+            with file_lock(self._lock):
+                proc = self._run(
+                    [binary, "-p", "--model", "sonnet", "--tools", ""],
+                    input=prompt,
+                    text=True,
+                    capture_output=True,
+                    timeout=self._timeout_s,
+                    env=env,
+                    cwd=self._cwd,
+                )
         except (subprocess.TimeoutExpired, OSError) as exc:
             raise NarrativeError(f"claude CLI failed: {type(exc).__name__}") from exc
         if proc.returncode != 0:

@@ -569,3 +569,25 @@ def test_every_run_refetches_the_stock_index_and_rate_instead_of_reading_a_week_
 
     assert {"ACME.L", "^FTSE", "USDGBP=X"} <= set(fetched)
     assert got["price"] == pytest.approx(2 * LAST_PRICE)
+
+
+def test_analyze_holds_the_cross_process_engine_lock(tmp_path, monkeypatch):
+    # The web server and the timer jobs are separate processes writing one cache directory.
+    import elab.engine as engine
+
+    held = []
+
+    class Recorder:
+        def __init__(self, path):
+            held.append(path)
+
+        def __enter__(self):
+            return None
+
+        def __exit__(self, *exc):
+            held.append("released")
+
+    monkeypatch.setattr(engine, "file_lock", Recorder)
+    analyze("ACME.PA", fetchers=_fetchers(), cache_dir=tmp_path)
+
+    assert held == [tmp_path / "engine.lock", "released"]

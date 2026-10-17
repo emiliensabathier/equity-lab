@@ -37,6 +37,7 @@ from elab.config import (
     RISK_FREE,
     RISK_FREE_DATE,
 )
+from elab.locks import file_lock
 from elab.peers import peers_for
 from elab.resolve import CompanyMeta, company_from_info
 from elab.statements import (
@@ -52,6 +53,7 @@ log = logging.getLogger(__name__)
 
 # vlab is not written for concurrent runs (shared on-disk cache, BLAS threads); one at a time.
 _LOCK = threading.Lock()
+ENGINE_LOCK_FILE = "engine.lock"
 
 UNAVAILABLE_MULTIPLES = {"status": "unavailable", "reason": "peer table not built yet"}
 
@@ -425,5 +427,7 @@ def analyze(ticker: str, *, fetchers: Fetchers, cache_dir: Path) -> dict:
     ``UnknownTicker`` and a stock price that cannot be loaded propagate; every other data or
     model failure is reported inside the section it affects.
     """
-    with _LOCK:
-        return _clean(_analyze(ticker, fetchers, Path(cache_dir)))  # type: ignore[return-value]
+    cache_dir = Path(cache_dir)
+    # The thread lock serializes the server's requests; the file lock, the server and the jobs.
+    with _LOCK, file_lock(cache_dir / ENGINE_LOCK_FILE):
+        return _clean(_analyze(ticker, fetchers, cache_dir))  # type: ignore[return-value]

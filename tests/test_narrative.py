@@ -184,7 +184,7 @@ def test_worker_full_queue_is_unavailable_and_stores_nothing(tmp_path):
     assert worker.get(overflow) is None
 
 
-def test_runner_strips_api_key_from_env(monkeypatch):
+def test_runner_strips_api_key_from_env(monkeypatch, tmp_path):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-secret")
     monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-secret")
     seen = {}
@@ -193,31 +193,63 @@ def test_runner_strips_api_key_from_env(monkeypatch):
         seen["cmd"], seen["kwargs"] = cmd, kwargs
         return SimpleNamespace(returncode=0, stdout=" hello \n", stderr="")
 
-    assert ClaudeRunner(timeout_s=7, run=fake_run)("the prompt") == "hello"
+    assert ClaudeRunner(tmp_path, timeout_s=7, run=fake_run)("the prompt") == "hello"
     kw = seen["kwargs"]
     assert "ANTHROPIC_API_KEY" not in kw["env"]
     assert "ANTHROPIC_AUTH_TOKEN" not in kw["env"]
     assert "PATH" in kw["env"]
     assert kw["input"] == "the prompt" and kw["timeout"] == 7
     assert kw["text"] and kw["capture_output"]
-    assert seen["cmd"][1:] == ["-p", "--model", "sonnet"]
+    assert seen["cmd"][1:] == ["-p", "--model", "sonnet", "--tools", ""]
+
+
+def test_runner_has_no_tools_and_runs_in_an_empty_directory_under_its_lock(tmp_path, monkeypatch):
+    import elab.narrative as narrative
+
+    held = []
+
+    class Recorder:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            held.append(self.path)
+
+        def __exit__(self, *exc):
+            held.append("released")
+
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen.update(cmd=cmd, cwd=kwargs["cwd"], held=list(held))
+        return SimpleNamespace(returncode=0, stdout="text", stderr="")
+
+    monkeypatch.setattr(narrative, "file_lock", Recorder)
+    ClaudeRunner(tmp_path, run=fake_run)("p")
+
+    assert seen["cmd"][-2:] == ["--tools", ""]
+    assert seen["cwd"] == tmp_path / "claude-cwd"
+    assert (tmp_path / "claude-cwd").is_dir()
+    assert not any((tmp_path / "claude-cwd").iterdir())
+    assert seen["held"] == [tmp_path / "claude.lock"]
+    assert held[-1] == "released"
 
 
 @pytest.mark.parametrize("proc", [
     SimpleNamespace(returncode=1, stdout="x", stderr="e"),
     SimpleNamespace(returncode=0, stdout="  \n", stderr=""),
 ])
-def test_runner_raises_on_failure_or_empty(proc):
+def test_runner_raises_on_failure_or_empty(proc, tmp_path):
     with pytest.raises(NarrativeError):
-        ClaudeRunner(run=lambda cmd, **kw: proc)("p")
+        ClaudeRunner(tmp_path, run=lambda cmd, **kw: proc)("p")
 
 
-def test_runner_raises_on_timeout():
+def test_runner_raises_on_timeout(tmp_path):
     def fake_run(cmd, **kw):
         raise subprocess.TimeoutExpired(cmd, 1)
 
     with pytest.raises(NarrativeError):
-        ClaudeRunner(run=fake_run)("p")
+        ClaudeRunner(tmp_path, run=fake_run)("p")
 
 
 def test_failing_rerun_never_overwrites_ready(tmp_path):

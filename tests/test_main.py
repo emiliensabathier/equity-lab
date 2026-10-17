@@ -134,7 +134,7 @@ def test_pregenerate_command_smoke(tmp_path, monkeypatch):
     monkeypatch.setattr(
         engine, "analyze", lambda ticker, fetchers, cache_dir: {"ticker": ticker, "price": 1.0}
     )
-    monkeypatch.setattr(narrative, "ClaudeRunner", lambda: (lambda prompt: "Price is 1.0."))
+    monkeypatch.setattr(narrative, "ClaudeRunner", lambda _: (lambda prompt: "Price is 1.0."))
     assert cli.main(["pregenerate", "--data-dir", str(tmp_path)]) == 0
     from elab.cache import Cache
 
@@ -148,7 +148,7 @@ def test_serve_command_passes_args_to_uvicorn(tmp_path, monkeypatch):
     from elab import engine, narrative
 
     monkeypatch.setattr(engine, "default_fetchers", lambda: object())
-    monkeypatch.setattr(narrative, "ClaudeRunner", lambda: (lambda prompt: ""))
+    monkeypatch.setattr(narrative, "ClaudeRunner", lambda _: (lambda prompt: ""))
     calls = {}
     monkeypatch.setattr(uvicorn, "run", lambda app, **kw: calls.update(app=app, **kw))
     rc = cli.main(["serve", "--host", "0.0.0.0", "--port", "9001", "--data-dir", str(tmp_path)])
