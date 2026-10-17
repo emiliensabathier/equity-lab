@@ -6,7 +6,7 @@ own history?
 
 ![ci](https://github.com/emiliensabathier/equity-lab/actions/workflows/ci.yml/badge.svg)
 
-Live: (live link after deployment)
+Live: <https://analyse.emiliensabathier.fr>
 
 ![The analysis page for LVMH: implied growth against history, WACC, peers and health](docs/screenshot.png)
 
@@ -53,7 +53,7 @@ narrative needs the `claude` CLI logged in; without it the rest of the page stil
 
 Files in [`deploy/`](deploy): a systemd service for the server, a oneshot service and a daily
 timer (03:00) running `build-peers` (a failure there does not stop the next step) then
-`pregenerate`, and an nginx site. The server and the jobs both run as the `equity-lab` user from
+`pregenerate`, and a Caddy site block. The server and the jobs both run as the `equity-lab` user from
 `/opt/equity-lab`, with a `.venv` there and an `.env` file (never committed; see
 `deploy/env.example`) holding `CLAUDE_CODE_OAUTH_TOKEN`. Both units are sandboxed: read-only
 system, no `/home`, private `/tmp`, writable only under `/opt/equity-lab`.
@@ -70,10 +70,10 @@ so the `claude` CLI must be installed in one of those directories (for example
 sudo -u equity-lab env $(cat /opt/equity-lab/.env) claude -p "ok"
 ```
 
-TLS: the nginx site listens on port 80 only. Set the real `server_name`, then run
-`sudo certbot --nginx -d <domain>`. Certbot adds the certificate and `listen 443 ssl` to that
-server block, a port-80 redirect, and its renewal timer; the security headers and the `/api/`
-rate limit in the block carry over to HTTPS unchanged.
+Reverse proxy: paste `deploy/Caddyfile-equity-lab` into `/etc/caddy/Caddyfile`, then
+`sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy`. Caddy gets
+the TLS certificate once the domain's A record points at the server. Rate limits live in the
+app (per address, on search, cold analyses and narrative jobs).
 
 ## Tests
 

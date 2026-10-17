@@ -14,6 +14,7 @@ from elab.narrative import (
     build_prompt,
     check_text,
     payload_hash,
+    plain_text,
 )
 
 ANALYSIS = {
@@ -341,3 +342,21 @@ def test_rejected_narrative_is_logged(tmp_path, caplog):
 def test_rules_say_a_reporting_currency_risk_free_rate_is_not_a_mismatch():
     assert ("The DCF runs in the reporting currency, so the risk-free rate matches that "
             "currency; that is not a mismatch.") in build_prompt({})
+
+
+def test_rules_ask_for_plain_text_without_field_names():
+    prompt = build_prompt({})
+    assert "Write plain text: no Markdown, no headings, no bullet points." in prompt
+    assert "Do not quote JSON field names" in prompt
+
+
+def test_plain_text_strips_markdown_markers():
+    raw = "## Heading\n**What the price implies** is `growth`.\n- point one\n* point two"
+    assert plain_text(raw) == "Heading\nWhat the price implies is growth.\npoint one\npoint two"
+
+
+def test_worker_serves_text_without_markdown(tmp_path):
+    worker = make_worker(tmp_path, lambda p: "**Bold** " + GOOD)
+    worker.request(ANALYSIS)
+    worker.drain()
+    assert worker.get(ANALYSIS) == {"status": "ready", "text": "Bold " + GOOD}

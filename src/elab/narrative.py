@@ -37,7 +37,9 @@ RULES = (
     "Never use the words buy, sell, undervalued, overvalued, target. Do not give advice. "
     "Write in English. Use '.' as the decimal separator. Large amounts may be written in "
     "billions or millions (e.g. 263.3 billion). The DCF runs in the reporting currency, so the "
-    "risk-free rate matches that currency; that is not a mismatch."
+    "risk-free rate matches that currency; that is not a mismatch. Write plain text: no "
+    "Markdown, no headings, no bullet points. Do not quote JSON field names; describe them in "
+    "words."
 )
 SCALE_EXPONENTS = (3, 6, 9, 12)
 
@@ -149,6 +151,14 @@ class ClaudeRunner:
         return text
 
 
+_MARKUP = re.compile(r"\*\*|__|`|^#+\s*|^\s*[-*]\s+", re.MULTILINE)
+
+
+def plain_text(text: str) -> str:
+    """Drop Markdown markers the page would show literally (it renders with textContent)."""
+    return _MARKUP.sub("", text).strip()
+
+
 class NarrativeWorker:
     """One daemon thread turning analyses into checked narratives, cached by content hash."""
 
@@ -221,11 +231,11 @@ class NarrativeWorker:
     def _generate(self, analysis: dict) -> dict:
         try:
             prompt = build_prompt(analysis)
-            text = self._runner(prompt)
+            text = plain_text(self._runner(prompt))
             violations = check_text(text, analysis)
             if violations:
                 retry = prompt + "\n\nYour previous text broke these rules, fix them:\n"
-                text = self._runner(retry + "\n".join(violations))
+                text = plain_text(self._runner(retry + "\n".join(violations)))
                 violations = check_text(text, analysis)
         except Exception as exc:  # noqa: BLE001 - any runner failure means "unavailable"
             log.warning("narrative runner failed: %s", type(exc).__name__)

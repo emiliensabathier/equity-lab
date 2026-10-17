@@ -1,0 +1,21 @@
+# Site block for the VPS Caddyfile (/etc/caddy/Caddyfile). Caddy obtains and renews the TLS
+# certificate itself once the domain's A record points at the server.
+analyse.emiliensabathier.fr {
+	encode gzip
+	header {
+		# The page loads only its own files plus Chart.js from cdnjs; it has no inline script or
+		# style (Chart.js sizes its canvas through the CSSOM, which style-src does not govern).
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	# With no trusted proxy configured, Caddy discards a client-supplied X-Forwarded-For and sends the
+	# real client address: the API trusts the first hop coming from loopback.
+	reverse_proxy 127.0.0.1:8040 {
+		# A cold analysis fetches a few years of statements and prices: allow it the time.
+		transport http {
+			read_timeout 120s
+		}
+	}
+}
