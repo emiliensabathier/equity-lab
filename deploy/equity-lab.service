@@ -17,6 +17,13 @@ ExecStart=/opt/equity-lab/.venv/bin/python -m elab serve --host 127.0.0.1 --port
 Restart=on-failure
 RestartSec=5
 MemoryMax=1G
+# Read-only system and no /home; writable only under /opt/equity-lab, which holds the data and,
+# as HOME, the claude CLI's login.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/equity-lab
+ProtectHome=yes
 
 [Install]
 WantedBy=multi-user.target

@@ -17,4 +17,11 @@ Environment=EQUITY_LAB_DATA=/opt/equity-lab/data
 ExecStart=-/opt/equity-lab/.venv/bin/python -m elab build-peers
 ExecStart=/opt/equity-lab/.venv/bin/python -m elab pregenerate
 MemoryMax=1G
+# Read-only system and no /home; writable only under /opt/equity-lab, which holds the data and,
+# as HOME, the claude CLI's login.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/equity-lab
+ProtectHome=yes
 TimeoutStartSec=8h
