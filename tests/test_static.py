@@ -36,3 +36,10 @@ def test_index_served_and_free_of_forbidden_words(tmp_path):
 
 def test_page_never_assigns_data_through_innerhtml():
     assert "innerHTML" not in (STATIC / "app.js").read_text("utf-8")
+
+
+def test_chartjs_script_is_pinned_with_integrity_hash():
+    html = (STATIC / "index.html").read_text("utf-8")
+    assert "Chart.js/4.4.1/chart.umd.min.js" in html
+    assert 'integrity="sha512-' in html and 'crossorigin="anonymous"' in html
+    assert 'id="search-status"' in html and 'id="status"' in html

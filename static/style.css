@@ -11,6 +11,7 @@
   }
 }
 * { box-sizing: border-box; }
+html { color-scheme: light dark; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -36,7 +37,7 @@ input[type=search] {
 #matches li { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
 #matches li:last-child { border-bottom: 0; }
 #matches li[aria-selected=true], #matches li:hover { background: var(--hl); color: var(--ink); }
-.status { min-height: 1.4em; margin: 8px 0; color: var(--muted); font-size: .9rem; }
+.status { min-height: 1.4em; margin: 4px 0; color: var(--muted); font-size: .9rem; }
 .status.error { color: #b3261e; }
 @media (prefers-color-scheme: dark) { .status.error { color: #f2918a; } }
 section, .banner {
@@ -58,15 +59,14 @@ caption { text-align: left; font-size: .8rem; color: var(--muted); padding-botto
 th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
 td.hl { background: var(--hl); font-weight: 700; }
-tr.median td { font-weight: 700; border-top: 2px solid var(--line); }
-tr.company td { font-weight: 700; color: var(--accent); }
-.charts { display: grid; grid-template-columns: 1fr; gap: 14px; }
-@media (min-width: 640px) { .charts { grid-template-columns: repeat(3, 1fr); } }
-.chart-box { position: relative; height: 180px; }
+tr.median th, tr.median td { font-weight: 700; border-top: 2px solid var(--line); }
+tr.company th, tr.company td { font-weight: 700; color: var(--accent); }
+.charts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 640px) { .charts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.chart-box { position: relative; height: 180px; min-width: 0; }
 .chart-title { font-size: .8rem; color: var(--muted); margin: 0 0 2px; }
 .narrative p { margin: 0 0 10px; }
 .limits { margin: 0; padding-left: 20px; }
 .limits li { margin-bottom: 4px; font-size: .9rem; }
 .foot { padding-bottom: 32px; font-size: .8rem; color: var(--muted); }
 .foot a { color: var(--accent); }
-.sr-only { position: absolute; left: -9999px; }
