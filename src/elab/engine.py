@@ -134,12 +134,14 @@ def _index_conversion(meta: CompanyMeta) -> str | None:
 def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series:
     """The benchmark's weekly closes in the stock's trading currency, as the spec regresses."""
     index = meta.market_index
-    market = load_prices([index], cache_dir=cache_dir, fetcher=fetchers.prices)[index]
+    market = load_prices([index], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)[
+        index
+    ]
     trading = _index_conversion(meta)
     if trading is None:
         return market
     pair = f"{trading}{INDEX_CURRENCY[index]}=X"  # index currency per unit of trading
-    fx = load_prices([pair], cache_dir=cache_dir, fetcher=fetchers.prices)[pair]
+    fx = load_prices([pair], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)[pair]
     both = pd.concat([market, fx], axis=1, join="inner").dropna()
     if both.empty:
         raise DataError(
@@ -408,8 +410,9 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
         return {**header, "price": None, "price_date": None, "coverage": "not_covered",
                 "verdict": None, "limits": [meta.excluded_reason]}
 
-    # A frame we cannot load is a whole-analysis failure; scaling builds a new frame.
-    prices = load_prices([ticker], cache_dir=cache_dir, fetcher=fetchers.prices)
+    # A frame we cannot load is a whole-analysis failure; scaling builds a new frame. Prices are
+    # refetched on every run: vlab's cache keeps them a week, the analysis only a day.
+    prices = load_prices([ticker], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)
     prices = prices * meta.price_scale
     price = float(prices[ticker].iloc[-1])
     try:

@@ -547,3 +547,27 @@ def test_every_benchmark_has_a_quote_currency():
     from elab.config import FALLBACK_INDEX, INDEX_BY_SUFFIX, INDEX_CURRENCY
 
     assert {*INDEX_BY_SUFFIX.values(), FALLBACK_INDEX} <= INDEX_CURRENCY.keys()
+
+
+def test_every_run_refetches_the_stock_index_and_rate_instead_of_reading_a_week_old_cache(
+    tmp_path,
+):
+    # vlab's price cache lives a week; an analysis cached a day must not reuse it.
+    fx, stock, index = _fx_series(), _series(7, LAST_PRICE), _index_series()
+    series = {"USDGBP=X": fx, "^FTSE": index, "ACME.L": stock}
+    fetched: list[str] = []
+
+    def prices(tickers, period, interval):
+        fetched.extend(tickers)
+        return pd.DataFrame({ticker: series[ticker] for ticker in tickers})
+
+    info = _info(currency="USD", financialCurrency="USD", exchange="LSE")
+    fetchers = Fetchers(statements=lambda t: make_statements(), prices=prices,
+                        info=lambda t: info)
+    analyze("ACME.L", fetchers=fetchers, cache_dir=tmp_path)
+    fetched.clear()
+    series["ACME.L"] = _series(7, 2 * LAST_PRICE)
+    got = analyze("ACME.L", fetchers=fetchers, cache_dir=tmp_path)
+
+    assert {"ACME.L", "^FTSE", "USDGBP=X"} <= set(fetched)
+    assert got["price"] == pytest.approx(2 * LAST_PRICE)
