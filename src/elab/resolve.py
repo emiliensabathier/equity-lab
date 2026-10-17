@@ -1,8 +1,9 @@
 """Turn a typed company name into tickers, and a Yahoo info dict into a described company.
 
-Trading and reporting currency are kept apart on purpose: an ADR trades in USD but reports in
-EUR, and a London listing quotes in pence while reporting in pounds. Mixing them silently would
-misstate every per-share figure.
+Trading and reporting currency are kept apart on purpose: Richemont trades in CHF but reports
+in EUR, and a London listing quotes in pence while reporting in pounds. Mixing them silently
+would misstate every per-share figure. A US listing reporting in another currency is refused as
+a likely ADR, whose price covers a different number of shares than the accounts.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from vlab.universe import Company
 from elab.config import (
     EXCLUDED_SECTORS,
     FALLBACK_INDEX,
+    FALLBACK_SUFFIXES,
     INDEX_BY_SUFFIX,
     PEER_TABLE_FILE,
     US_EXCHANGES,
@@ -26,6 +28,10 @@ MAX_MATCHES = 8
 MIN_QUERY, MAX_QUERY = 2, 60
 PENCE_CODES = frozenset({"GBp", "GBX"})
 SUBUNIT_CODES = frozenset({"ZAc", "ILA"})
+NOT_COVERED_MARKET = (
+    "Listings on this exchange are not covered: the model benchmarks US and European "
+    "markets only."
+)
 
 
 class UnknownTicker(DataError):
@@ -136,19 +142,27 @@ def company_from_info(ticker: str, info: dict) -> CompanyMeta:
     if reporting in PENCE_CODES:
         reporting = "GBP"
     exchange = info.get("exchange") or ""
+    is_us = exchange in US_EXCHANGES
+    suffix = _suffix(ticker) or None
     # A US exchange wins over dots in the symbol (BRK.B, BRK-B); otherwise the last suffix.
     market_index = (
-        INDEX_BY_SUFFIX[""]
-        if exchange in US_EXCHANGES
-        else INDEX_BY_SUFFIX.get(_suffix(ticker) or None, FALLBACK_INDEX)
+        INDEX_BY_SUFFIX[""] if is_us else INDEX_BY_SUFFIX.get(suffix, FALLBACK_INDEX)
     )
     sector = info.get("sector") or ""
-    excluded = (
-        f"{sector} companies are not covered: a free-cash-flow DCF does not apply "
-        "to balance-sheet businesses."
-        if sector in EXCLUDED_SECTORS
-        else None
-    )
+    excluded = None
+    if sector in EXCLUDED_SECTORS:
+        excluded = (
+            f"{sector} companies are not covered: a free-cash-flow DCF does not apply "
+            "to balance-sheet businesses."
+        )
+    elif is_us and reporting != "USD":
+        # No ADR ratio is known: a per-share value from the accounts is not comparable with it.
+        excluded = (
+            f"This US listing reports in {reporting}; it is likely an ADR, whose price covers "
+            "a different number of shares than the accounts. Search the home listing instead."
+        )
+    elif not is_us and suffix not in INDEX_BY_SUFFIX and suffix not in FALLBACK_SUFFIXES:
+        excluded = NOT_COVERED_MARKET
     company = Company(
         ticker, info.get("longName") or info.get("shortName") or ticker, reporting, trading
     )

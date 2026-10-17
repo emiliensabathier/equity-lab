@@ -155,7 +155,8 @@ def _bracket_miss(
     """The DCF section when the price lies beyond the growth bracket: which side, and how far.
 
     The reason is written here rather than taken from the solver, whose message quotes the
-    price in the reporting currency: for an ADR it would sit next to a verdict in another.
+    price in the reporting currency: for a cross-currency listing it would sit next to a
+    verdict in another.
     """
     path = growth_path(Assumptions(exc.bound, 0.0, TERMINAL_GROWTH, 1.0))
     word = "higher" if exc.side == "above" else "lower"

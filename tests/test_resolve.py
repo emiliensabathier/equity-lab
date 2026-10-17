@@ -48,15 +48,33 @@ def test_company_from_info_converts_pence_listing():
     assert meta.excluded_reason is None
 
 
-def test_company_from_info_keeps_adr_currencies_distinct():
-    info = {"quoteType": "EQUITY", "shortName": "SAP", "currency": "USD",
-            "financialCurrency": "EUR", "sector": "Technology", "exchange": "NYQ"}
-    meta = company_from_info("SAP", info)
+def test_company_from_info_keeps_trading_and_reporting_currencies_distinct():
+    info = {"quoteType": "EQUITY", "shortName": "Richemont", "currency": "CHF",
+            "financialCurrency": "EUR", "sector": "Consumer Cyclical", "exchange": "EBS"}
+    meta = company_from_info("CFR.SW", info)
     assert meta.company.reporting_currency == "EUR"
-    assert meta.company.trading_currency == "USD"
-    assert meta.company.name == "SAP"
-    assert meta.market_index == "^GSPC"
+    assert meta.company.trading_currency == "CHF"
+    assert meta.company.name == "Richemont"
+    assert meta.market_index == "^SSMI"
     assert meta.price_scale == 1.0
+    assert meta.excluded_reason is None
+
+
+def test_a_us_listing_reporting_in_another_currency_is_refused_as_a_likely_adr():
+    # The ADR price covers a different number of shares than the accounts (SHEL: 2 per ADR).
+    info = {"quoteType": "EQUITY", "longName": "Shell plc", "currency": "USD",
+            "financialCurrency": "GBP", "sector": "Energy", "exchange": "NYQ"}
+    meta = company_from_info("SHEL", info)
+    assert meta.excluded_reason == (
+        "This US listing reports in GBP; it is likely an ADR, whose price covers a different "
+        "number of shares than the accounts. Search the home listing instead."
+    )
+
+
+def test_a_us_listing_reporting_in_dollars_is_covered():
+    info = {"quoteType": "EQUITY", "longName": "Apple", "currency": "USD",
+            "financialCurrency": "USD", "sector": "Technology", "exchange": "NMS"}
+    assert company_from_info("AAPL", info).excluded_reason is None
 
 
 def test_company_from_info_defaults_reporting_to_trading_currency():
@@ -74,9 +92,26 @@ def test_company_from_info_flags_bank_as_not_covered():
     )
 
 
-def test_unknown_suffix_falls_back_to_stoxx():
-    info = {"quoteType": "EQUITY", "longName": "Y", "currency": "JPY"}
-    assert company_from_info("7203.T", info).market_index == "^STOXX"
+def test_a_listing_outside_us_and_europe_is_not_covered():
+    info = {"quoteType": "EQUITY", "longName": "Toyota", "currency": "JPY",
+            "financialCurrency": "JPY", "sector": "Consumer Cyclical", "exchange": "JPX"}
+    assert company_from_info("7203.T", info).excluded_reason == (
+        "Listings on this exchange are not covered: the model benchmarks US and European "
+        "markets only."
+    )
+
+
+def test_a_dotless_listing_off_us_exchanges_is_not_covered():
+    info = {"quoteType": "EQUITY", "longName": "Nestle ADR", "currency": "USD",
+            "financialCurrency": "CHF", "exchange": "PNK"}
+    assert "not covered" in company_from_info("NSRGY", info).excluded_reason
+
+
+def test_a_european_exchange_without_a_local_benchmark_falls_back_to_stoxx():
+    info = {"quoteType": "EQUITY", "longName": "Y", "currency": "NOK", "exchange": "OSL"}
+    meta = company_from_info("EQNR.OL", info)
+    assert meta.market_index == "^STOXX"
+    assert meta.excluded_reason is None
 
 
 @pytest.mark.parametrize("info", [{}, {"quoteType": "ETF", "currency": "USD"}])

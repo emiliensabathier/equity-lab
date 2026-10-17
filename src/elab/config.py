@@ -63,6 +63,9 @@ INDEX_BY_SUFFIX: dict[str, str] = {
     ".IR": "^ISEQ",
 }
 FALLBACK_INDEX = "^STOXX"
+# European listings with no local benchmark above: valued against the fallback, converted. Any
+# other non-US listing (Tokyo, Toronto, OTC lines) is not covered.
+FALLBACK_SUFFIXES = frozenset({".OL", ".WA", ".AT", ".PR", ".BD", ".IC", ".TL", ".RG", ".VS"})
 
 # Quote currency of each benchmark, checked against yfinance's metadata on 2026-10-17. The beta
 # regresses the stock as quoted against its index in that same trading currency, with no

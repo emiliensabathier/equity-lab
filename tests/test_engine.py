@@ -220,16 +220,28 @@ def test_a_price_below_the_bracket_gets_a_verdict_naming_the_floor(tmp_path):
     )
 
 
-def test_an_adr_beyond_the_bracket_states_the_price_in_its_trading_currency(tmp_path):
+def test_a_cross_currency_listing_beyond_the_bracket_states_its_trading_price(tmp_path):
     # vlab's solver message quotes the price in the reporting currency (EUR here): next to a
-    # verdict in USD the reader would see two prices for one share.
-    info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
-    got = analyze("ACME", fetchers=_fetchers(info=info, last_price=1e6), cache_dir=tmp_path)
+    # verdict in CHF the reader would see two prices for one share.
+    info = _info(currency="CHF", financialCurrency="EUR", exchange="EBS")
+    got = analyze("ACME.SW", fetchers=_fetchers(info=info, last_price=1e6), cache_dir=tmp_path)
 
     reason = got["dcf"]["reason"]
-    assert "1,000,000.00 USD" in reason
+    assert "1,000,000.00 CHF" in reason
     assert "EUR" not in reason
-    assert got["verdict"].startswith("At 1,000,000.00 USD")
+    assert got["verdict"].startswith("At 1,000,000.00 CHF")
+
+
+def test_a_likely_adr_is_not_covered_and_fetches_no_prices(tmp_path):
+    def boom(*args, **kwargs):
+        raise AssertionError("an ADR must not be valued")
+
+    info = _info(currency="USD", financialCurrency="GBP", exchange="NYQ")
+    got = analyze("SHEL", fetchers=Fetchers(boom, boom, lambda t: info), cache_dir=tmp_path)
+
+    assert got["coverage"] == "not_covered"
+    assert got["verdict"] is None
+    assert "likely an ADR" in got["limits"][0]
 
 
 def test_a_failure_while_describing_a_bracket_miss_stays_in_the_section(tmp_path, monkeypatch):
@@ -305,21 +317,21 @@ def _priced(series: dict, info: dict) -> Fetchers:
 
 
 def test_beta_uses_the_stock_and_index_as_quoted_when_both_trade_in_one_currency(tmp_path):
-    # An ADR quoted in USD, reporting in EUR, benchmarked on the S&P 500 (USD): the spec's
+    # Quoted in CHF, reporting in EUR, benchmarked on the SMI (CHF): the spec's
     # trading-currency rule, so no exchange rate enters the regression; the currency
     # difference goes through the risk-free rate instead.
     from vlab.wacc import levered_beta
 
     fx = _fx_series()
     stock, index = _series(7, LAST_PRICE), _index_series()
-    info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
-    fetchers = _priced({"EURUSD=X": fx, "^GSPC": index, "ACME": stock}, info)
-    got = analyze("ACME", fetchers=fetchers, cache_dir=tmp_path)
+    info = _info(currency="CHF", financialCurrency="EUR", exchange="EBS")
+    fetchers = _priced({"EURCHF=X": fx, "^SSMI": index, "ACME.SW": stock}, info)
+    got = analyze("ACME.SW", fetchers=fetchers, cache_dir=tmp_path)
 
     assert got["dcf"]["status"] == "ok"
     assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock, index))
     assert (
-        "Beta regressed on weekly returns against ^GSPC over five years." in got["limits"]
+        "Beta regressed on weekly returns against ^SSMI over five years." in got["limits"]
     )
 
 
@@ -409,13 +421,13 @@ def test_a_latest_year_left_blank_in_a_core_line_marks_dcf_unavailable(tmp_path)
 
 
 def test_analyze_uses_risk_free_of_reporting_currency(tmp_path):
-    # Trades in USD, reports in EUR: the euro rate applies, since the cash flows are in euros.
-    info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
-    got = analyze("ACME", fetchers=_fetchers(info=info), cache_dir=tmp_path)
+    # Trades in CHF, reports in EUR: the euro rate applies, since the cash flows are in euros.
+    info = _info(currency="CHF", financialCurrency="EUR", exchange="EBS")
+    got = analyze("ACME.SW", fetchers=_fetchers(info=info), cache_dir=tmp_path)
 
     dcf = got["dcf"]
     assert dcf["status"] == "ok"
-    assert dcf["beta_index"] == "^GSPC"
+    assert dcf["beta_index"] == "^SSMI"
     assert dcf["cost_of_equity"] == pytest.approx(
         RISK_FREE["EUR"] + dcf["beta"] * EQUITY_RISK_PREMIUM
     )
