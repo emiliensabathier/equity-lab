@@ -384,15 +384,24 @@ function kpi(label, value) {
 function verdictCard(a) {
   const sentence = a.verdict
     || "The reverse DCF could not be computed for this company; see the sections below.";
+  const figure = a.dcf && a.dcf.status === "ok" ? impliedAverage(a.dcf) : NA;
   return el("section", { class: "verdict" },
-    el("p", { class: "name" }, `${a.name} · ${a.ticker} · ${a.exchange}`),
-    el("p", { class: "sentence" }, sentence),
+    el("h2", { class: "name" }, a.name || a.ticker,
+      el("span", {}, ` ${a.ticker} · ${a.exchange}`)),
+    el("p", { class: "sentence" }, ...highlightFigure(sentence, figure)),
     a.dcf && a.dcf.status === "ok" ? gauge(a.dcf) : null,
     el("dl", { class: "kpis" },
       kpi("Price", money(a.price, a.trading_currency)),
       kpi("Price date", `week of ${day(a.price_date)}`),
       kpi("Sector", a.sector || NA),
       kpi("Reporting currency", a.reporting_currency || NA)));
+}
+
+// The figure the price implies gets the highlighter, as an analyst would mark a printed report.
+function highlightFigure(text, figure) {
+  const at = figure === NA ? -1 : text.indexOf(figure);
+  if (at < 0) return [text];
+  return [text.slice(0, at), el("mark", {}, figure), text.slice(at + figure.length)];
 }
 
 // The page's one picture: the growth the price assumes, pinned next to the growth the company
@@ -409,31 +418,31 @@ function gauge(d) {
   const hi = hi0 + pad;
   const at = (v) => ((v - lo) / (hi - lo)) * 100;
   const place = (node, v) => { node.style.left = at(v).toFixed(2) + "%"; return node; };
-  const pin = (cls, label, v) => {
+  const pin = (cls, label, value, v) => {
     const p = at(v);
-    const edge = p < 12 ? " edge-l" : p > 88 ? " edge-r" : "";
-    return place(el("div", { class: `gauge-pin ${cls}${edge}` }, el("span", {}, label)), v);
+    const edge = p < 15 ? " edge-l" : p > 85 ? " edge-r" : "";
+    return place(el("div", { class: `gauge-pin ${cls}${edge}` },
+      el("span", {}, label, " ", el("b", {}, value))), v);
   };
   const span = el("div", { class: "gauge-span" });
   span.style.left = at(Math.min(implied, hist)).toFixed(2) + "%";
   span.style.width = Math.abs(at(implied) - at(hist)).toFixed(2) + "%";
   const gapPt = (implied - hist) * 100;
   const bound = !isNum(d.implied_average_growth);
+  const gap = `${bound ? (d.implied_growth_side === "below" ? "≤ " : "≥ ") : ""}${gapPt >= 0 ? "+" : "−"}${Math.abs(gapPt).toFixed(1)} pt`;
   return el("div", { class: "gauge" },
-    el("dl", { class: "gauge-head" },
-      el("div", { class: "gauge-stat implied" }, el("dt", {}, "Priced in, 5-yr avg growth"),
-        el("dd", {}, impliedAverage(d))),
-      el("div", { class: "gauge-stat history" }, el("dt", {}, "Own history, 5-yr avg"),
-        el("dd", {}, pct(hist))),
-      el("div", { class: "gauge-stat gap" }, el("dt", {}, "Gap"),
-        el("dd", {}, `${bound ? (d.implied_growth_side === "below" ? "≤ " : "≥ ") : ""}${gapPt >= 0 ? "+" : "−"}${Math.abs(gapPt).toFixed(1)} pt`))),
     el("div", { class: "gauge-track", role: "img",
       "aria-label": `The price assumes ${impliedAverage(d)} average growth; the company's normalized history is ${pct(hist)}.` },
     span,
     place(el("div", { class: "gauge-zero" }), 0),
-    pin("history", "History", hist),
-    pin("implied", "Price", implied)),
-    el("div", { class: "gauge-axis", "aria-hidden": "true" }, el("span", {}, pct(lo)), el("span", {}, pct(hi))));
+    pin("history", "Delivered", pct(hist), hist),
+    pin("implied", "Priced in", impliedAverage(d), implied)),
+    el("div", { class: "gauge-axis", "aria-hidden": "true" },
+      el("span", {}, pct(lo)),
+      el("span", { class: "gauge-gap" }, `Gap ${gap}`),
+      el("span", {}, pct(hi))),
+    el("p", { class: "gauge-note" },
+      "Both figures are five-year average revenue growth: what the price requires, and what the company has delivered once normalized."));
 }
 
 // Beyond the growth bracket the solver has no figure, only the bound the price lies past.
@@ -531,8 +540,8 @@ function chartBox(title, type, years, key, fmt) {
   const draw = () => {
     if (typeof Chart === "undefined" || !canvas.isConnected) return;
     const col = chartColors();
-    Chart.defaults.font.family = "'JetBrains Mono', ui-monospace, monospace";
-    Chart.defaults.font.size = 11;
+    Chart.defaults.font.family = "'Public Sans', system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
     charts.push(new Chart(canvas, {
       type,
       data: {

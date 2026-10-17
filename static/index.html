@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>equity-lab</title>
 <meta name="description" content="Type any US or European listed company and read what its share price implies, on one page.">
-<meta name="theme-color" content="#eef2f0">
-<link rel="preload" href="/static/fonts/bricolage-grotesque-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/static/fonts/public-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/style.css?v=2">
+<meta name="theme-color" content="#fdfdfb">
+<link rel="preload" href="/static/fonts/source-serif-4-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
 <a class="skip" href="#report">Skip to the analysis</a>
 <header class="bar">
   <div class="wrap bar-inner">
-    <a class="mark" href="/" aria-label="equity-lab home"><span class="mark-dot" aria-hidden="true"></span>equity-lab</a>
+    <a class="mark" href="/" aria-label="equity-lab home">equity<span>-lab</span></a>
     <nav class="bar-links" aria-label="Project">
       <a href="https://github.com/emiliensabathier/equity-lab" rel="noopener">Source</a>
       <a href="https://github.com/emiliensabathier/valuation-lab" rel="noopener">valuation-lab</a>
@@ -24,29 +24,27 @@
 
 <div class="wrap">
   <section class="hero" aria-labelledby="hero-title">
-    <p class="eyebrow">Reverse DCF · US and European listed companies</p>
-    <h1 id="hero-title">What is the share price already assuming?</h1>
-    <p class="lede">Pick a company. The page solves for the revenue growth that justifies today's price, then sets it against the company's own history, its peers and its balance sheet.</p>
+    <h1 id="hero-title">How much growth is already in the&nbsp;price?</h1>
+    <p class="lede">A reverse DCF works backwards from today's share price to the revenue growth it requires, then checks that figure against what the company has actually delivered. Any US or European listed company.</p>
   </section>
 
   <div class="search">
-    <label for="search">Company name or ticker</label>
+    <label for="search" class="sr-only">Company name or ticker</label>
     <div class="search-field">
       <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="search" type="search" autocomplete="off" role="combobox" aria-expanded="false"
-             aria-controls="matches" aria-autocomplete="list" placeholder="e.g. LVMH, Apple, SAP">
-      <kbd class="search-key" aria-hidden="true">/</kbd>
+             aria-controls="matches" aria-autocomplete="list" placeholder="Company name or ticker">
     </div>
     <ul id="matches" role="listbox" hidden></ul>
   </div>
   <div class="examples" id="examples">
-    <span class="examples-label">Try</span>
-    <button type="button" data-ticker="MC.PA">LVMH</button>
-    <button type="button" data-ticker="AAPL">Apple</button>
-    <button type="button" data-ticker="ASML.AS">ASML</button>
-    <button type="button" data-ticker="NVDA">Nvidia</button>
-    <button type="button" data-ticker="NESN.SW">Nestlé</button>
-    <button type="button" data-ticker="AIR.PA">Airbus</button>
+    Or open one:
+    <button type="button" data-ticker="MC.PA">LVMH</button>,
+    <button type="button" data-ticker="AAPL">Apple</button>,
+    <button type="button" data-ticker="ASML.AS">ASML</button>,
+    <button type="button" data-ticker="NVDA">Nvidia</button>,
+    <button type="button" data-ticker="NESN.SW">Nestlé</button> or
+    <button type="button" data-ticker="AIR.PA">Airbus</button>.
   </div>
   <p id="search-status" class="status" role="status" aria-live="polite"></p>
   <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -58,6 +56,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
         integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/static/app.js?v=2"></script>
+<script src="/static/app.js?v=3"></script>
 </body>
 </html>
