@@ -191,7 +191,7 @@ PREGENERATE: tuple[str, ...] = (
     "DG.PA", "EL.PA", "CAP.PA", "SAF.PA", "RI.PA", "BN.PA", "STLAP.PA",
     "ASML.AS", "SAP.DE", "SIE.DE", "BMW.DE", "MBG.DE", "VOW3.DE", "ADS.DE", "BAS.DE", "DTE.DE",
     "IBE.MC", "ITX.MC",
-    "NESN.SW", "NOVN.SW", "ROG.SW",
+    "NESN.SW", "NOVN.SW", "ROP.SW",
     "AZN.L", "SHEL.L", "ULVR.L", "GSK.L", "BP.L",
     "NOVO-B.CO",
     "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "NFLX", "KO", "PEP", "WMT",
