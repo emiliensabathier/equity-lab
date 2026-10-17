@@ -39,7 +39,6 @@ Live: (live link after deployment)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e ../valuation-lab
 pip install -e .[dev]
 python -m elab build-peers   # slow: one request per constituent, resumable
 python -m elab serve         # http://127.0.0.1:8040
