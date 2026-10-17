@@ -230,6 +230,17 @@ def test_search_is_limited_per_address_to_sixty_a_minute(env):
     assert client.get("/api/search", params={"q": "acme"}).status_code == 200
 
 
+@pytest.mark.parametrize("query", ["", " a ", "x" * 61])
+def test_search_outside_the_query_length_neither_searches_nor_caches(env, query, monkeypatch):
+    # A 2 KB query must not become a cache key: out-of-range queries stop before both.
+    calls = []
+    monkeypatch.setattr(api_mod, "search", lambda *args: calls.append(args) or [])
+    monkeypatch.setattr(api_mod.TtlCache, "set", lambda *args: calls.append(args))
+    monkeypatch.setattr(api_mod.TtlCache, "get", lambda *args: calls.append(args))
+    assert env["client"].get("/api/search", params={"q": query}).json() == []
+    assert calls == []
+
+
 def test_search_short_query_is_empty(env):
     assert env["client"].get("/api/search", params={"q": "a"}).json() == []
     assert env["client"].get("/api/search").json() == []

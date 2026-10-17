@@ -25,7 +25,7 @@ from elab import config
 from elab.cache import Cache
 from elab.engine import Fetchers, analyze
 from elab.narrative import NarrativeWorker
-from elab.resolve import UnknownTicker, search
+from elab.resolve import MAX_QUERY, MIN_QUERY, UnknownTicker, search
 
 log = logging.getLogger(__name__)
 
@@ -148,6 +148,8 @@ def create_app(
         if not search_limiter.try_acquire(client_ip(request)):
             raise HTTPException(429, SEARCH_RATE_MESSAGE)
         key = q.strip().lower()
+        if not MIN_QUERY <= len(key) <= MAX_QUERY:
+            return []
         cached = search_cache.get(key)
         if cached is not None:
             return cached
