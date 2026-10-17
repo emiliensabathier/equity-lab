@@ -7,6 +7,7 @@ from elab.config import DEFAULTABLE_LINES
 from elab.statements import (
     MissingCoreLine,
     blank_years_sentence,
+    carried_sentence,
     fill_blank_years,
     fill_defaults,
     limit_sentence,
@@ -96,21 +97,38 @@ def _blank_latest(frame: pd.DataFrame, *lines: str) -> pd.DataFrame:
     return blanked
 
 
-def test_fill_blank_years_zeroes_a_defaultable_line_left_blank_in_a_reported_year():
-    # Apple's leases and interest are reported for older years and blank for the latest two:
-    # left as NaN they made net debt, the WACC and the whole valuation NaN.
+def test_fill_blank_years_carries_the_prior_year_into_blank_interest_and_leases():
+    # Apple's leases and interest are reported for older years and blank for the latest two.
     base = make_statements()
+    balance = base.balance.copy()
+    balance.loc["Capital Lease Obligations", balance.columns[:2]] = np.nan
     s = make_statements(
-        income=_blank_latest(base.income, "Interest Expense"),
-        balance=_blank_latest(base.balance, "Capital Lease Obligations"),
+        income=_blank_latest(base.income, "Interest Expense"), balance=balance
     )
-    filled, names = fill_blank_years(s)
+    filled, carried, zeroed = fill_blank_years(s)
 
-    assert names == ("Interest Expense", "Capital Lease Obligations")
-    assert filled.income.loc["Interest Expense"].iloc[0] == 0.0
-    assert filled.balance.loc["Capital Lease Obligations"].iloc[0] == 0.0
-    assert filled.balance.loc["Capital Lease Obligations"].iloc[1] == 78.0
+    assert carried == (
+        ("Interest Expense", (2025,), 2024),
+        ("Capital Lease Obligations", (2024, 2025), 2023),
+    )
+    assert zeroed == ()
+    assert filled.income.loc["Interest Expense"].iloc[0] == 10.0
+    assert list(filled.balance.loc["Capital Lease Obligations"].iloc[:2]) == [75.0, 75.0]
     assert np.isnan(s.balance.loc["Capital Lease Obligations"].iloc[0])  # input untouched
+
+
+def test_fill_blank_years_zeroes_other_defaultable_lines_and_older_blanks():
+    base = make_statements()
+    cashflow = _blank_latest(base.cashflow, "Sale Of PPE")
+    balance = base.balance.copy()
+    balance.loc["Current Capital Lease Obligation", balance.columns[-1]] = np.nan
+    filled, carried, zeroed = fill_blank_years(make_statements(cashflow=cashflow,
+                                                               balance=balance))
+
+    assert carried == ()
+    assert zeroed == ("Sale Of PPE", "Current Capital Lease Obligation")
+    assert filled.cashflow.loc["Sale Of PPE"].iloc[0] == 0.0
+    assert filled.balance.loc["Current Capital Lease Obligation"].iloc[-1] == 0.0
 
 
 def test_fill_blank_years_leaves_core_lines_and_unreported_years_alone():
@@ -119,9 +137,9 @@ def test_fill_blank_years_leaves_core_lines_and_unreported_years_alone():
     extra = pd.Timestamp("2021-12-31")
     income[extra] = np.nan  # a phantom year with nothing reported in it
     s = make_statements(income=income)
-    filled, names = fill_blank_years(s)
+    filled, carried, zeroed = fill_blank_years(s)
 
-    assert names == ()
+    assert carried == zeroed == ()
     assert np.isnan(filled.income.loc["EBIT"].iloc[0])
     assert filled.income[extra].isna().all()
 
@@ -129,4 +147,13 @@ def test_fill_blank_years_leaves_core_lines_and_unreported_years_alone():
 def test_blank_years_sentence():
     assert blank_years_sentence("Interest Expense") == (
         "Interest Expense not reported for some years: treated as zero in those years."
+    )
+
+
+def test_carried_sentence_names_the_line_and_the_years():
+    assert carried_sentence("Interest Expense", (2025,), 2024) == (
+        "Interest Expense not reported for 2025: 2024 value used."
+    )
+    assert carried_sentence("Capital Lease Obligations", (2024, 2025), 2023) == (
+        "Capital Lease Obligations not reported for 2024\u20132025: 2023 value used."
     )

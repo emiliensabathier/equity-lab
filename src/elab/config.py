@@ -34,6 +34,13 @@ DEFAULTABLE_LINES: dict[str, tuple[str, ...]] = {
     ),
 }
 
+# Defaultable lines that take the most recent earlier reported value when a reported year is
+# blank, instead of zero: a blank latest-year interest expense read as zero shows a 0% cost of
+# debt, and a blank lease line read as zero counts the leases as financial debt.
+CARRIED_LINES = frozenset({
+    "Interest Expense", "Capital Lease Obligations", "Current Capital Lease Obligation",
+})
+
 US_EXCHANGES = frozenset({"NMS", "NYQ", "NGM", "NCM", "ASE", "BTS", "PCX"})
 
 # Benchmark per listing suffix ("" = US). Each symbol was checked to return weekly closes from
@@ -57,10 +64,10 @@ INDEX_BY_SUFFIX: dict[str, str] = {
 }
 FALLBACK_INDEX = "^STOXX"
 
-# Quote currency of each benchmark, checked against yfinance's metadata on 2026-10-17. vlab
-# converts the stock into the reporting currency before regressing it; the index is converted
-# to the same currency here, or the beta also measures the exchange rate (Unilever, reporting
-# in EUR against the FTSE 100 in GBP, came out at 0.34 instead of 0.74 with both in EUR).
+# Quote currency of each benchmark, checked against yfinance's metadata on 2026-10-17. The beta
+# regresses the stock as quoted against its index in that same trading currency, with no
+# exchange rate in the regression; an index quoted in another currency (the ^STOXX fallback for
+# a non-euro listing, a London line quoted in USD) is converted to the stock's currency first.
 INDEX_CURRENCY: dict[str, str] = {
     "^GSPC": "USD",
     "^FCHI": "EUR",

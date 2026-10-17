@@ -189,7 +189,6 @@ def test_analyze_implied_growth_outside_bracket_is_unavailable_not_raised(tmp_pa
     got = analyze("ACME.PA", fetchers=_fetchers(last_price=1e6), cache_dir=tmp_path)
 
     assert got["dcf"]["status"] == "unavailable"
-    assert "reproduces a price" in got["dcf"]["reason"]
     assert got["health"]["status"] == "ok"
 
 
@@ -200,9 +199,11 @@ def test_a_price_above_the_bracket_still_gets_a_verdict_naming_the_side(tmp_path
     dcf = got["dcf"]
     assert dcf["implied_growth_side"] == "above"
     assert dcf["implied_average_growth_bound"] == pytest.approx(0.26)
+    assert dcf["implied_growth_bound"] == pytest.approx(0.50)
     assert got["verdict"] == (
-        "At 1,000,000.00 EUR, the market prices more than 26.0% average revenue growth over "
-        "five years, beyond the range the model solves for; the company's normalized history "
+        "At 1,000,000.00 EUR, the price implies more than 26.0% average revenue growth over "
+        "five years \u2014 the highest rate this model can solve for (50% in the first year, "
+        "fading to 2%) \u2014 so it cannot say how much more. The company's normalized history "
         f"is {dcf['normalized_growth']:.1%}."
     )
 
@@ -213,8 +214,40 @@ def test_a_price_below_the_bracket_gets_a_verdict_naming_the_floor(tmp_path):
     assert got["dcf"]["implied_growth_side"] == "below"
     assert got["dcf"]["implied_average_growth_bound"] == pytest.approx(-0.09)
     assert got["verdict"].startswith(
-        "At 0.01 EUR, the market prices less than -9.0% average revenue growth over five years"
+        "At 0.01 EUR, the price implies less than -9.0% average revenue growth over five "
+        "years \u2014 the lowest rate this model can solve for (-20% in the first year, "
+        "fading to 2%) \u2014 so it cannot say how much less."
     )
+
+
+def test_an_adr_beyond_the_bracket_states_the_price_in_its_trading_currency(tmp_path):
+    # vlab's solver message quotes the price in the reporting currency (EUR here): next to a
+    # verdict in USD the reader would see two prices for one share.
+    info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
+    got = analyze("ACME", fetchers=_fetchers(info=info, last_price=1e6), cache_dir=tmp_path)
+
+    reason = got["dcf"]["reason"]
+    assert "1,000,000.00 USD" in reason
+    assert "EUR" not in reason
+    assert got["verdict"].startswith("At 1,000,000.00 USD")
+
+
+def test_a_failure_while_describing_a_bracket_miss_stays_in_the_section(tmp_path, monkeypatch):
+    # The normalized growth the verdict quotes is read before the DCF runs, so a data error
+    # there is handled like any other instead of escaping from the bracket-miss handler.
+    from vlab.errors import DataError
+
+    import elab.engine as engine
+
+    def broken(*args, **kwargs):
+        raise DataError("boom")
+
+    monkeypatch.setattr(engine, "drivers_from", broken)
+    got = analyze("ACME.PA", fetchers=_fetchers(last_price=1e6), cache_dir=tmp_path)
+
+    assert got["dcf"] == {"status": "unavailable", "reason": "boom"}
+    assert got["verdict"] is None
+    assert got["health"]["status"] == "ok"
 
 
 def _with_years(statements, years: list[str]):
@@ -237,6 +270,16 @@ def test_a_september_year_end_priced_before_the_next_filing_is_valued(tmp_path):
 
     assert got["dcf"]["status"] == "ok"
     assert got["coverage"] == "full"
+    assert (
+        "Latest annual report is for fiscal year ending 2025-09-30; balance sheet and share "
+        "count are more than 12 months old."
+    ) in got["limits"]
+
+
+def test_statements_within_a_year_add_no_age_sentence(tmp_path):
+    got = analyze("ACME.PA", fetchers=_fetchers(), cache_dir=tmp_path)
+
+    assert not any("more than 12 months old" in line for line in got["limits"])
 
 
 def test_statements_more_than_eighteen_months_old_are_refused(tmp_path):
@@ -254,63 +297,103 @@ def _fx_series() -> pd.Series:
     return pd.Series(1.1 * np.cumprod(1.0 + rng.normal(0.0, 0.01, len(WEEKS))), index=WEEKS)
 
 
-def test_beta_is_measured_with_stock_and_index_in_the_reporting_currency(tmp_path):
-    # An ADR quoted in USD, reporting in EUR, benchmarked on the S&P 500 (USD): vlab converts
-    # the stock into EUR, so the index must be converted too, or the beta measures the
-    # exchange rate's co-movement with the index on top of the business.
+def _priced(series: dict, info: dict) -> Fetchers:
+    def prices(tickers, period, interval):
+        return pd.DataFrame({ticker: series[ticker] for ticker in tickers})
+
+    return Fetchers(statements=lambda t: make_statements(), prices=prices, info=lambda t: info)
+
+
+def test_beta_uses_the_stock_and_index_as_quoted_when_both_trade_in_one_currency(tmp_path):
+    # An ADR quoted in USD, reporting in EUR, benchmarked on the S&P 500 (USD): the spec's
+    # trading-currency rule, so no exchange rate enters the regression; the currency
+    # difference goes through the risk-free rate instead.
     from vlab.wacc import levered_beta
 
     fx = _fx_series()
     stock, index = _series(7, LAST_PRICE), _index_series()
-
-    def prices(tickers, period, interval):
-        series = {"EURUSD=X": fx, "^GSPC": index, "ACME": stock}
-        return pd.DataFrame({ticker: series[ticker] for ticker in tickers})
-
     info = _info(currency="USD", financialCurrency="EUR", exchange="NYQ")
-    fetchers = Fetchers(statements=lambda t: make_statements(), prices=prices,
-                        info=lambda t: info)
+    fetchers = _priced({"EURUSD=X": fx, "^GSPC": index, "ACME": stock}, info)
     got = analyze("ACME", fetchers=fetchers, cache_dir=tmp_path)
 
     assert got["dcf"]["status"] == "ok"
-    assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock / fx, index / fx))
+    assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock, index))
     assert (
-        "Beta regressed on weekly returns against ^GSPC over five years, with both series "
-        "converted to EUR."
-    ) in got["limits"]
+        "Beta regressed on weekly returns against ^GSPC over five years." in got["limits"]
+    )
 
 
-def test_an_index_in_another_currency_is_converted_even_when_the_stock_is_not(tmp_path):
+def test_an_index_in_another_currency_is_converted_to_the_stocks_trading_currency(tmp_path):
     # A London listing quoted and reported in USD, benchmarked on the FTSE 100 (GBP).
     from vlab.wacc import levered_beta
 
     fx = _fx_series()
     stock, index = _series(7, LAST_PRICE), _index_series()
-
-    def prices(tickers, period, interval):
-        series = {"USDGBP=X": fx, "^FTSE": index, "ACME.L": stock}
-        return pd.DataFrame({ticker: series[ticker] for ticker in tickers})
-
     info = _info(currency="USD", financialCurrency="USD", exchange="LSE")
-    fetchers = Fetchers(statements=lambda t: make_statements(), prices=prices,
-                        info=lambda t: info)
-    got = analyze("ACME.L", fetchers=fetchers, cache_dir=tmp_path)
+    got = analyze("ACME.L", fetchers=_priced({"USDGBP=X": fx, "^FTSE": index, "ACME.L": stock},
+                                             info), cache_dir=tmp_path)
+
+    assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock, index / fx))
+    assert (
+        "Beta regressed on weekly returns against ^FTSE over five years, with the index "
+        "converted to USD."
+    ) in got["limits"]
+
+
+def test_a_pence_listing_reporting_in_euros_is_regressed_in_pounds(tmp_path):
+    # Unilever: quoted in GBp, reporting in EUR, on the FTSE 100 (GBP). Stock and index already
+    # share a currency, so neither is converted (the spec's 0.55, not 0.74 in EUR).
+    from vlab.wacc import levered_beta
+
+    stock, index = _series(7, LAST_PRICE * 100), _index_series()
+    info = _info(currency="GBp", financialCurrency="EUR", exchange="LSE")
+    got = analyze("ACME.L", fetchers=_priced({"EURGBP=X": _fx_series(), "^FTSE": index,
+                                              "ACME.L": stock}, info), cache_dir=tmp_path)
+
+    assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock / 100, index))
+
+
+def test_the_fallback_index_is_converted_for_a_listing_outside_the_euro(tmp_path):
+    from vlab.wacc import levered_beta
+
+    fx = _fx_series()
+    stock, index = _series(7, LAST_PRICE), _index_series()
+    info = _info(currency="NOK", financialCurrency="NOK", exchange="OSL")
+    got = analyze("ACME.OL", fetchers=_priced({"NOKEUR=X": fx, "^STOXX": index,
+                                               "ACME.OL": stock}, info), cache_dir=tmp_path)
 
     assert got["dcf"]["beta"] == pytest.approx(levered_beta(stock, index / fx))
 
 
-def test_a_latest_year_left_blank_in_a_defaultable_line_is_zeroed_and_stated(tmp_path):
+def test_an_index_and_rate_with_no_common_dates_is_named_in_the_reason(tmp_path):
+    fx = pd.Series(1.1, index=WEEKS - pd.Timedelta(days=3))
+    info = _info(currency="USD", financialCurrency="USD", exchange="LSE")
+    got = analyze("ACME.L", fetchers=_priced({"USDGBP=X": fx, "^FTSE": _index_series(),
+                                              "ACME.L": _series(7, LAST_PRICE)}, info),
+                  cache_dir=tmp_path)
+
+    assert got["dcf"]["status"] == "unavailable"
+    assert got["dcf"]["reason"] == (
+        "no dates overlap between ^FTSE and the USDGBP=X history; cannot convert the index "
+        "to USD for the beta regression"
+    )
+
+
+def test_a_latest_year_left_blank_in_interest_and_leases_carries_the_prior_year(tmp_path):
+    # Apple left interest and leases blank for its latest years. Zero there showed a 0% cost
+    # of debt that the earlier years contradict; the most recent reported value is used.
     base = make_statements()
     income, balance = base.income.copy(), base.balance.copy()
-    income.loc["Interest Expense", income.columns[0]] = np.nan
+    income.loc["Interest Expense"] = [np.nan, 12.0, 10.0, 10.0]
     balance.loc["Capital Lease Obligations", balance.columns[0]] = np.nan
     statements = make_statements(income=income, balance=balance)
     got = analyze("ACME.PA", fetchers=_fetchers(statements=statements), cache_dir=tmp_path)
 
     assert got["dcf"]["status"] == "ok"
+    assert got["dcf"]["cost_of_debt"] == pytest.approx(12.0 / 300.0)
     assert got["limits"][:2] == [
-        "Interest Expense not reported for some years: treated as zero in those years.",
-        "Capital Lease Obligations not reported for some years: treated as zero in those years.",
+        "Interest Expense not reported for 2025: 2024 value used.",
+        "Capital Lease Obligations not reported for 2025: 2024 value used.",
     ]
 
 

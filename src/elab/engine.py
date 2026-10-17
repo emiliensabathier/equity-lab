@@ -26,11 +26,11 @@ from vlab.data.loader import (
     load_prices,
     load_statements,
 )
-from vlab.dcf import Assumptions, growth_path
+from vlab.dcf import MAX_VALUATION_LAG, Assumptions, growth_path
 from vlab.errors import DataError, ValuationError
 from vlab.fundamentals import drivers_from
-from vlab.pipeline import TERMINAL_GROWTH, CompanyResult, value_company
-from vlab.reverse import GrowthOutOfRange
+from vlab.pipeline import DAYS_PER_YEAR, TERMINAL_GROWTH, CompanyResult, value_company
+from vlab.reverse import GROWTH_BRACKET, GrowthOutOfRange
 
 from elab.config import (
     INDEX_CURRENCY,
@@ -42,7 +42,9 @@ from elab.config import (
 from elab.peers import peers_for
 from elab.resolve import CompanyMeta, company_from_info
 from elab.statements import (
+    Carried,
     blank_years_sentence,
+    carried_sentence,
     fill_blank_years,
     fill_defaults,
     limit_sentence,
@@ -124,32 +126,50 @@ def _dcf_section(result: CompanyResult, index: str) -> dict:
 
 
 def _index_conversion(meta: CompanyMeta) -> str | None:
-    """The reporting currency the index must be converted to, or None if it is already in it."""
-    reporting = meta.company.reporting_currency
-    return None if INDEX_CURRENCY[meta.market_index] == reporting else reporting
+    """The trading currency the index must be converted to, or None if it is already in it."""
+    trading = meta.company.trading_currency
+    return None if INDEX_CURRENCY[meta.market_index] == trading else trading
 
 
 def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series:
-    """The benchmark's weekly closes in the reporting currency, the one vlab moves the stock to."""
+    """The benchmark's weekly closes in the stock's trading currency, as the spec regresses."""
     index = meta.market_index
     market = load_prices([index], cache_dir=cache_dir, fetcher=fetchers.prices)[index]
-    reporting = _index_conversion(meta)
-    if reporting is None:
+    trading = _index_conversion(meta)
+    if trading is None:
         return market
-    pair = f"{reporting}{INDEX_CURRENCY[index]}=X"  # index currency per unit of reporting
+    pair = f"{trading}{INDEX_CURRENCY[index]}=X"  # index currency per unit of trading
     fx = load_prices([pair], cache_dir=cache_dir, fetcher=fetchers.prices)[pair]
     both = pd.concat([market, fx], axis=1, join="inner").dropna()
+    if both.empty:
+        raise DataError(
+            f"no dates overlap between {index} and the {pair} history; cannot convert the "
+            f"index to {trading} for the beta regression"
+        )
     return (both.iloc[:, 0] / both.iloc[:, 1]).rename(index)
 
 
-def _bracket_miss(exc: GrowthOutOfRange, statements: Statements, ticker: str) -> dict:
-    """The DCF section when the price lies beyond the growth bracket: which side, and how far."""
+def _bracket_miss(
+    exc: GrowthOutOfRange, normalized_growth: float, price: float, ccy: str
+) -> dict:
+    """The DCF section when the price lies beyond the growth bracket: which side, and how far.
+
+    The reason is written here rather than taken from the solver, whose message quotes the
+    price in the reporting currency: for an ADR it would sit next to a verdict in another.
+    """
     path = growth_path(Assumptions(exc.bound, 0.0, TERMINAL_GROWTH, 1.0))
+    word = "higher" if exc.side == "above" else "lower"
     return {
-        **_unavailable(exc),
+        "status": "unavailable",
+        "reason": (
+            f"No first-year revenue growth between {GROWTH_BRACKET[0]:.0%} and "
+            f"{GROWTH_BRACKET[1]:.0%} reproduces the price of {price:,.2f} {ccy}: it implies "
+            f"a {word} rate."
+        ),
         "implied_growth_side": exc.side,
+        "implied_growth_bound": exc.bound,
         "implied_average_growth_bound": sum(path) / len(path),
-        "normalized_growth": drivers_from(statements, ticker).revenue_growth,
+        "normalized_growth": normalized_growth,
     }
 
 
@@ -169,7 +189,7 @@ def _run_dcf(
         cache_dir=cache_dir / "filled", refresh=True,
         statement_fetcher=lambda _ticker: statements,
         price_fetcher=fetchers.prices, risk_free=RISK_FREE[ccy],
-        max_valuation_lag=MAX_VALUATION_LAG_YEARS,
+        max_valuation_lag=MAX_VALUATION_LAG_YEARS, beta_currency="trading",
     )
 
 
@@ -237,9 +257,26 @@ def _window(income: pd.DataFrame | None) -> list[int]:
     return sorted(pd.Timestamp(year).year for year in _reported_revenue(income).index)
 
 
+def _age_sentence(income: pd.DataFrame | None, price_date: pd.Timestamp | None) -> list[str]:
+    """A sentence when the latest annual statements are over a year older than the price."""
+    if income is None or price_date is None or "Total Revenue" not in income.index:
+        return []
+    revenue = _reported_revenue(income)
+    if revenue.empty:
+        return []
+    year_end = str(pd.Timestamp(max(revenue.index)).date())
+    if (price_date - pd.Timestamp(year_end)).days / DAYS_PER_YEAR <= MAX_VALUATION_LAG:
+        return []
+    return [
+        f"Latest annual report is for fiscal year ending {year_end}; balance sheet and share "
+        "count are more than 12 months old."
+    ]
+
+
 def _limits(
     meta: CompanyMeta, filled: tuple[str, ...], income: pd.DataFrame | None,
-    blank: tuple[str, ...] = (),
+    blank: tuple[str, ...] = (), carried: tuple[Carried, ...] = (),
+    price_date: pd.Timestamp | None = None,
 ) -> list[str]:
     """Every assumption the page rests on; the drivers window only when statements loaded."""
     ccy = meta.company.reporting_currency
@@ -252,14 +289,16 @@ def _limits(
     converted = _index_conversion(meta)
     beta_sentence = (
         f"Beta regressed on weekly returns against {meta.market_index} over five years"
-        + (f", with both series converted to {converted}." if converted else ".")
+        + (f", with the index converted to {converted}." if converted else ".")
     )
     limits = [
+        *(carried_sentence(*entry) for entry in carried),
         *(blank_years_sentence(line) for line in blank),
         *(limit_sentence(line) for line in filled),
         rf_sentence,
         beta_sentence,
     ]
+    limits.extend(_age_sentence(income, price_date))
     years = _window(income)
     if years:
         limits.append(
@@ -268,15 +307,22 @@ def _limits(
     return limits
 
 
+def _beyond_bracket(price: float, ccy: str, dcf: dict) -> str:
+    above = dcf["implied_growth_side"] == "above"
+    more, edge = ("more", "highest") if above else ("less", "lowest")
+    return (
+        f"At {price:,.2f} {ccy}, the price implies {more} than "
+        f"{dcf['implied_average_growth_bound']:.1%} average revenue growth over five years "
+        f"\u2014 the {edge} rate this model can solve for "
+        f"({dcf['implied_growth_bound']:.0%} in the first year, fading to "
+        f"{TERMINAL_GROWTH:.0%}) \u2014 so it cannot say how much {more}. The company's "
+        f"normalized history is {dcf['normalized_growth']:.1%}."
+    )
+
+
 def _verdict(price: float, ccy: str, dcf: dict) -> str | None:
     if "implied_growth_side" in dcf:
-        more_or_less = "more" if dcf["implied_growth_side"] == "above" else "less"
-        return (
-            f"At {price:,.2f} {ccy}, the market prices {more_or_less} than "
-            f"{dcf['implied_average_growth_bound']:.1%} average revenue growth over five "
-            f"years, beyond the range the model solves for; the company's normalized history "
-            f"is {dcf['normalized_growth']:.1%}."
-        )
+        return _beyond_bracket(price, ccy, dcf)
     if dcf["status"] != "ok":
         return None
     return (
@@ -301,7 +347,7 @@ def _header(ticker: str, meta: CompanyMeta) -> dict:
 
 def _sections(
     meta: CompanyMeta, raw: Statements, prices: pd.DataFrame, fetchers: Fetchers,
-    cache_dir: Path,
+    cache_dir: Path, price: float,
 ) -> tuple[dict, dict, list[str]]:
     """The DCF and health sections plus the limits, each failure contained in its section."""
     health_filled: tuple[str, ...] = ()
@@ -312,18 +358,23 @@ def _sections(
         health = _unavailable(exc)
     filled: tuple[str, ...] = ()
     blank: tuple[str, ...] = ()
-    statements = raw
+    carried: tuple[Carried, ...] = ()
+    normalized_growth = math.nan
     try:
         statements, filled = fill_defaults(raw)
-        statements, blank = fill_blank_years(statements)
+        statements, carried, blank = fill_blank_years(statements)
+        # Read before the DCF so the bracket-miss handler below has nothing left to compute
+        # that could raise outside this try.
+        normalized_growth = drivers_from(statements, meta.company.ticker).revenue_growth
         dcf = _dcf_section(_run_dcf(meta, statements, prices, fetchers, cache_dir),
                            meta.market_index)
     except GrowthOutOfRange as exc:
-        dcf = _bracket_miss(exc, statements, meta.company.ticker)
+        dcf = _bracket_miss(exc, normalized_growth, price, meta.company.trading_currency)
     except (DataError, ValuationError) as exc:
         dcf = _unavailable(exc)
     defaulted = filled + tuple(line for line in health_filled if line not in filled)
-    return dcf, health, _limits(meta, defaulted, raw.income, blank)
+    limits = _limits(meta, defaulted, raw.income, blank, carried, prices.index[-1])
+    return dcf, health, limits
 
 
 def _multiples(ticker: str, info: dict, meta: CompanyMeta, cache_dir: Path) -> dict:
@@ -366,7 +417,7 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
         dcf = health = _unavailable(exc)
         limits = _limits(meta, (), None)
     else:
-        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir)
+        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir, price)
     # Coverage ignores multiples: they depend on a weekly job, not on this company's own data.
     full = dcf["status"] == "ok" and health["status"] == "ok"
     return {
