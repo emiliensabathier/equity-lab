@@ -1,0 +1,20 @@
+[Unit]
+Description=equity-lab web server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=equity-lab
+WorkingDirectory=/opt/equity-lab
+EnvironmentFile=/opt/equity-lab/.env
+Environment=OPENBLAS_NUM_THREADS=1
+Environment=OMP_NUM_THREADS=1
+Environment=MKL_NUM_THREADS=1
+Environment=EQUITY_LAB_DATA=/opt/equity-lab/data
+ExecStart=/opt/equity-lab/.venv/bin/python -m elab serve --host 127.0.0.1 --port 8040
+Restart=on-failure
+RestartSec=5
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

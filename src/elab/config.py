@@ -154,3 +154,17 @@ ANALYSIS_TTL = timedelta(hours=24)
 COLD_ANALYSES_PER_HOUR = 10
 NARRATIVE_JOBS_PER_HOUR = 5
 RATE_WINDOW = timedelta(hours=1)
+
+# Weekly pre-generation: liquid non-financial names (banks and insurers are "not covered", so
+# they would only burn time). Pages for these load instantly from the cache.
+PREGENERATE: tuple[str, ...] = (
+    "MC.PA", "OR.PA", "TTE.PA", "SAN.PA", "AIR.PA", "SU.PA", "AI.PA", "RMS.PA", "KER.PA",
+    "DG.PA", "EL.PA", "CAP.PA", "SAF.PA", "RI.PA", "BN.PA", "STLAP.PA",
+    "ASML.AS", "SAP.DE", "SIE.DE", "BMW.DE", "MBG.DE", "VOW3.DE", "ADS.DE", "BAS.DE", "DTE.DE",
+    "IBE.MC", "ITX.MC",
+    "NESN.SW", "NOVN.SW", "ROG.SW",
+    "AZN.L", "SHEL.L", "ULVR.L", "GSK.L", "BP.L",
+    "NOVO-B.CO",
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "NFLX", "KO", "PEP", "WMT",
+    "XOM", "JNJ", "PG", "HD", "COST",
+)

@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+env:
+  OPENBLAS_NUM_THREADS: "1"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      # vlab is installed from a sibling checkout for now; this switches to the git pin in
+      # pyproject.toml once valuation-lab's equity-lab support is on its main branch.
+      - uses: actions/checkout@v4
+        with:
+          repository: emiliensabathier/valuation-lab
+          ref: feat/equity-lab-support
+          path: valuation-lab
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ./valuation-lab
+      - run: pip install -e .[dev]
+      - run: ruff check .
+      - run: pytest --cov=elab --cov-fail-under=80
