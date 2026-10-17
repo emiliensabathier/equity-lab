@@ -366,7 +366,7 @@ function dcfCard(a) {
       + "The DCF value uses the company's own normalized history."),
     el("h3", {}, "WACC bridge"),
     table(null, ["Component", "Value"], [
-      { cells: ["Beta vs " + (d.beta_index || "index"), num(d.beta)] },
+      { cells: ["Beta vs " + (d.beta_index_name || d.beta_index || "index"), num(d.beta)] },
       { cells: ["Cost of equity", pct(d.cost_of_equity)] },
       { cells: ["Cost of debt (pre-tax)", pct(d.cost_of_debt)] },
       { cells: ["Equity weight", pct(d.equity_weight)] },

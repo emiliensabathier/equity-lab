@@ -90,6 +90,27 @@ INDEX_CURRENCY: dict[str, str] = {
     "^STOXX": "EUR",
 }
 
+# Readable benchmark names: the page and the narrative call the index by name, and Claude
+# writes "S&P 500" rather than "^GSPC" (the figure in a name must be in the data to pass).
+INDEX_NAME: dict[str, str] = {
+    "^GSPC": "S&P 500",
+    "^FCHI": "CAC 40",
+    "^GDAXI": "DAX 40",
+    "^FTSE": "FTSE 100",
+    "^SSMI": "SMI",
+    "^AEX": "AEX",
+    "^IBEX": "IBEX 35",
+    "FTSEMIB.MI": "FTSE MIB",
+    "^OMX": "OMX Stockholm 30",
+    "^BFX": "BEL 20",
+    "^OMXC25": "OMX Copenhagen 25",
+    "^OMXH25": "OMX Helsinki 25",
+    "PSI20.LS": "PSI 20",
+    "^ATX": "ATX",
+    "^ISEQ": "ISEQ All-Share",
+    "^STOXX": "STOXX Europe 600",
+}
+
 # How long after the latest fiscal year-end a price may be compared with its statements. vlab's
 # default is one year; a site priced every day meets companies between their year-end's first
 # anniversary and the filing of the next annual report (a US 10-K is due within 60-90 days, the

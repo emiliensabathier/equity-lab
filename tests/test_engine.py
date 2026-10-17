@@ -84,6 +84,7 @@ def test_analyze_full_coverage_returns_verdict_and_sections(tmp_path):
     dcf = got["dcf"]
     assert dcf["status"] == "ok"
     assert dcf["beta_index"] == "^FCHI"
+    assert dcf["beta_index_name"] == "CAC 40"
     assert set(dcf["implied_average_growth_at_lower_wacc"]) == {"0.01", "0.02"}
     assert dcf["fiscal_years"][-1] == "2025-12-31"
     assert len(dcf["sensitivity"]["rows"]) == 5
@@ -572,6 +573,12 @@ def test_every_benchmark_has_a_quote_currency():
     from elab.config import FALLBACK_INDEX, INDEX_BY_SUFFIX, INDEX_CURRENCY
 
     assert {*INDEX_BY_SUFFIX.values(), FALLBACK_INDEX} <= INDEX_CURRENCY.keys()
+
+
+def test_every_benchmark_has_a_readable_name():
+    from elab.config import INDEX_CURRENCY, INDEX_NAME
+
+    assert INDEX_NAME.keys() == INDEX_CURRENCY.keys()
 
 
 def test_every_run_refetches_the_stock_index_and_rate_instead_of_reading_a_week_old_cache(

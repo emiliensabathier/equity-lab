@@ -34,6 +34,7 @@ from vlab.pipeline import DAYS_PER_YEAR, TERMINAL_GROWTH, CompanyResult, value_c
 
 from elab.config import (
     INDEX_CURRENCY,
+    INDEX_NAME,
     MAX_VALUATION_LAG_YEARS,
     PEER_TABLE_FILE,
     RISK_FREE,
@@ -137,6 +138,7 @@ def _dcf_section(result: CompanyResult, index: str, reporting: str) -> dict:
         "wacc": result.wacc,
         "beta": result.beta,
         "beta_index": index,
+        "beta_index_name": INDEX_NAME.get(index, index),
         "cost_of_equity": result.cost_of_equity,
         "cost_of_debt": result.cost_of_debt,
         "equity_weight": result.equity_weight,

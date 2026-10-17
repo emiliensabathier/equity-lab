@@ -360,3 +360,8 @@ def test_worker_serves_text_without_markdown(tmp_path):
     worker.request(ANALYSIS)
     worker.drain()
     assert worker.get(ANALYSIS) == {"status": "ready", "text": "Bold " + GOOD}
+
+
+def test_figure_inside_the_index_name_passes():
+    analysis = {"dcf": {"beta_index": "^GSPC", "beta_index_name": "S&P 500", "beta": 1.14}}
+    assert check_text("Beta of 1.14 against the S&P 500.", analysis) == []
