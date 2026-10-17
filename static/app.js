@@ -102,9 +102,9 @@ function table(caption, head, rows) {
     el("table", {}, caption ? el("caption", {}, caption) : null, thead, tbody));
 }
 
-function setStatus(text, isError) {
+function setStatus(text, isError, isLoading = false) {
   statusEl.textContent = text;
-  statusEl.className = isError ? "status error" : "status";
+  statusEl.className = "status" + (isError ? " error" : "") + (isLoading ? " loading" : "");
 }
 
 // ---------- search ----------
@@ -144,7 +144,8 @@ function showMatches(found, q) {
   listFor = q;
   found.forEach((m, i) => {
     const li = el("li", { role: "option", id: "m" + i, "aria-selected": "false" },
-      `${m.name} · ${m.ticker} · ${m.exchange}`);
+      el("span", { class: "m-name" }, m.name),
+      el("span", { class: "m-meta" }, `${m.ticker} · ${m.exchange}`));
     li.addEventListener("mousedown", (e) => { e.preventDefault(); choose(i); });
     list.append(li);
   });
@@ -239,6 +240,24 @@ input.addEventListener("keydown", (e) => {
 
 input.addEventListener("blur", () => setTimeout(dismiss, 100));
 
+// "/" jumps to the search box from anywhere on the page, as on most data sites.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  e.preventDefault();
+  input.focus();
+  input.select();
+});
+
+$("examples").querySelectorAll("button[data-ticker]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    input.value = btn.textContent;
+    dismiss();
+    loadAnalysis(btn.dataset.ticker);
+  });
+});
+
 // ---------- loading ----------
 
 function stopNarrative() {
@@ -259,7 +278,8 @@ async function loadAnalysis(ticker, typed) {
   destroyCharts();
   report.hidden = true;
   report.replaceChildren();
-  setStatus("Analysing " + ticker + "… a first run can take up to a minute.", false);
+  $("toc").hidden = true;
+  setStatus("Analysing " + ticker + "… a first run can take up to a minute.", false, true);
   try {
     const res = await fetch("/api/analysis/" + encodeURIComponent(ticker), { signal: mine.signal });
     const body = await res.json();
@@ -274,6 +294,7 @@ async function loadAnalysis(ticker, typed) {
     history.replaceState(null, "", "?t=" + encodeURIComponent(body.ticker || ticker));
     setStatus("", false);
     render(body);
+    document.title = `${body.name || ticker} · equity-lab`;
   } catch (err) {
     if (err.name === "AbortError") return;
     setStatus(NETWORK_MESSAGE, true);
@@ -282,9 +303,37 @@ async function loadAnalysis(ticker, typed) {
 
 // ---------- rendering ----------
 
+const SECTIONS = [
+  ["verdict", "Verdict"], ["dcf", "Reverse DCF"], ["multiples", "Peers"],
+  ["health", "Financial health"], ["narrative", "Written analysis"], ["limits", "Limits"],
+];
+
+function renderToc() {
+  const toc = $("toc");
+  const links = SECTIONS.filter(([id]) => $(id)).map(([id, label]) =>
+    el("a", { href: "#" + id, "data-for": id }, label));
+  toc.replaceChildren(el("div", { class: "wrap toc-inner" }, ...links));
+  toc.hidden = false;
+  if (!("IntersectionObserver" in window)) return;
+  const mark = (id) => links.forEach((l) => l.setAttribute("aria-current", String(l.dataset.for === id)));
+  SECTIONS.forEach(([id]) => {
+    if (!$(id)) return;
+    new IntersectionObserver((entries) => {
+      if (entries.some((en) => en.isIntersecting)) mark(id);
+    }, { rootMargin: "-30% 0px -60% 0px" }).observe($(id));
+  });
+}
+
+// Sections get stable ids so the nav and shared links can point at them.
+function withId(node, id) {
+  node.id = id;
+  return node;
+}
+
 function render(a) {
   report.replaceChildren();
   report.hidden = false;
+  document.body.classList.add("has-report");
   if (a.stale) {
     report.append(el("div", { class: "banner", role: "note" },
       `Showing the last saved analysis from ${day(a.as_of)}; live data is unavailable.`));
@@ -297,13 +346,15 @@ function render(a) {
     guardedFooter(a);
     return;
   }
-  report.append(guarded("Verdict", () => verdictCard(a)));
-  report.append(guarded("Reverse DCF and DCF", () => dcfCard(a)));
-  report.append(guarded("Multiples vs peers", () => multiplesCard(a.multiples, a)));
-  report.append(guarded("Financial health", () => healthCard(a.health, a)));
-  report.append(el("section", { class: "narrative" }, el("h2", {}, "Claude analysis"),
-    el("p", { id: "narrative-body", class: "unavailable" }, "Analysis being written…")));
-  report.append(guarded("Limits of this analysis", () => limitsCard(a.limits)));
+  report.append(withId(guarded("Verdict", () => verdictCard(a)), "verdict"));
+  report.append(withId(guarded("Reverse DCF and DCF", () => dcfCard(a)), "dcf"));
+  report.append(withId(guarded("Multiples vs peers", () => multiplesCard(a.multiples, a)), "multiples"));
+  report.append(withId(guarded("Financial health", () => healthCard(a.health, a)), "health"));
+  report.append(el("section", { class: "narrative", id: "narrative" },
+    el("h2", {}, "Written analysis", el("span", { class: "narrative-tag" }, "Claude")),
+    el("p", { id: "narrative-body", class: "unavailable pending" }, "Analysis being written…")));
+  report.append(withId(guarded("Limits of this analysis", () => limitsCard(a.limits)), "limits"));
+  renderToc();
   guardedFooter(a);
   pollNarrative(a.ticker);
 }
@@ -334,13 +385,55 @@ function verdictCard(a) {
   const sentence = a.verdict
     || "The reverse DCF could not be computed for this company; see the sections below.";
   return el("section", { class: "verdict" },
-    el("p", { class: "sentence" }, sentence),
     el("p", { class: "name" }, `${a.name} · ${a.ticker} · ${a.exchange}`),
+    el("p", { class: "sentence" }, sentence),
+    a.dcf && a.dcf.status === "ok" ? gauge(a.dcf) : null,
     el("dl", { class: "kpis" },
       kpi("Price", money(a.price, a.trading_currency)),
       kpi("Price date", `week of ${day(a.price_date)}`),
       kpi("Sector", a.sector || NA),
       kpi("Reporting currency", a.reporting_currency || NA)));
+}
+
+// The page's one picture: the growth the price assumes, pinned next to the growth the company
+// has delivered. Positions go through the CSSOM, which the style-src CSP does not block.
+function gauge(d) {
+  const implied = isNum(d.implied_average_growth) ? d.implied_average_growth
+    : isNum(d.implied_average_growth_bound) ? d.implied_average_growth_bound : null;
+  const hist = d.normalized_average_growth;
+  if (!isNum(implied) || !isNum(hist)) return null;
+  const lo0 = Math.min(0, implied, hist);
+  const hi0 = Math.max(0, implied, hist);
+  const pad = Math.max(0.02, (hi0 - lo0) * 0.12);
+  const lo = lo0 - pad;
+  const hi = hi0 + pad;
+  const at = (v) => ((v - lo) / (hi - lo)) * 100;
+  const place = (node, v) => { node.style.left = at(v).toFixed(2) + "%"; return node; };
+  const pin = (cls, label, v) => {
+    const p = at(v);
+    const edge = p < 12 ? " edge-l" : p > 88 ? " edge-r" : "";
+    return place(el("div", { class: `gauge-pin ${cls}${edge}` }, el("span", {}, label)), v);
+  };
+  const span = el("div", { class: "gauge-span" });
+  span.style.left = at(Math.min(implied, hist)).toFixed(2) + "%";
+  span.style.width = Math.abs(at(implied) - at(hist)).toFixed(2) + "%";
+  const gapPt = (implied - hist) * 100;
+  const bound = !isNum(d.implied_average_growth);
+  return el("div", { class: "gauge" },
+    el("dl", { class: "gauge-head" },
+      el("div", { class: "gauge-stat implied" }, el("dt", {}, "Priced in, 5-yr avg growth"),
+        el("dd", {}, impliedAverage(d))),
+      el("div", { class: "gauge-stat history" }, el("dt", {}, "Own history, 5-yr avg"),
+        el("dd", {}, pct(hist))),
+      el("div", { class: "gauge-stat gap" }, el("dt", {}, "Gap"),
+        el("dd", {}, `${bound ? (d.implied_growth_side === "below" ? "≤ " : "≥ ") : ""}${gapPt >= 0 ? "+" : "−"}${Math.abs(gapPt).toFixed(1)} pt`))),
+    el("div", { class: "gauge-track", role: "img",
+      "aria-label": `The price assumes ${impliedAverage(d)} average growth; the company's normalized history is ${pct(hist)}.` },
+    span,
+    place(el("div", { class: "gauge-zero" }), 0),
+    pin("history", "History", hist),
+    pin("implied", "Price", implied)),
+    el("div", { class: "gauge-axis", "aria-hidden": "true" }, el("span", {}, pct(lo)), el("span", {}, pct(hi))));
 }
 
 // Beyond the growth bracket the solver has no figure, only the bound the price lies past.
@@ -359,12 +452,13 @@ function dcfCard(a) {
     el("dl", { class: "kpis" },
       kpi("Price", money(a.price, ccy)),
       kpi("DCF value per share", money(d.value_per_share, ccy)),
-      kpi("Implied growth, 5-yr average", impliedAverage(d)),
-      kpi("Normalized history, 5-yr average", pct(d.normalized_average_growth))),
+      kpi("Terminal value share", pct(d.terminal_share)),
+      kpi("Implied exit multiple", mult(d.exit_multiple))),
     el("p", { class: "note" },
       "The reverse DCF solves for the revenue growth that makes the DCF equal the price. "
       + "The DCF value uses the company's own normalized history."),
-    el("h3", {}, "WACC bridge"),
+  ];
+  const bridge = el("div", {}, el("h3", {}, "WACC bridge"),
     table(null, ["Component", "Value"], [
       { cells: ["Beta vs " + (d.beta_index_name || d.beta_index || "index"), num(d.beta)] },
       { cells: ["Cost of equity", pct(d.cost_of_equity)] },
@@ -372,26 +466,24 @@ function dcfCard(a) {
       { cells: ["Equity weight", pct(d.equity_weight)] },
       { cells: ["Debt weight", pct(d.debt_weight)] },
       { cells: ["WACC", pct(d.wacc)], cls: "median" },
-    ]),
-    el("h3", {}, "Implied growth at a lower discount rate"),
-  ];
+    ]));
   const lower = d.implied_average_growth_at_lower_wacc || {};
   const steps = Object.keys(lower).sort((x, y) => Number(x) - Number(y));
-  parts.push(table(null, ["WACC", "Implied 5-yr average growth"], [
-    { cells: [`${pct(d.wacc)} (base)`, impliedAverage(d)] },
-    ...steps.map((s) => ({
-      cells: [`${pct(d.wacc - Number(s))} (WACC - ${(Number(s) * 100).toFixed(0)} pt)`,
-        pct(lower[s])],
-    })),
-  ]));
-  parts.push(el("p", { class: "note" },
-    `Terminal value is ${pct(d.terminal_share)} of the DCF; implied exit multiple `
-    + `${mult(d.exit_multiple)}.`));
+  const lowerWacc = el("div", {}, el("h3", {}, "Implied growth at a lower discount rate"),
+    table(null, ["WACC", "Implied 5-yr avg growth"], [
+      { cells: [`${pct(d.wacc)} (base)`, impliedAverage(d)] },
+      ...steps.map((s) => ({
+        cells: [`${pct(d.wacc - Number(s))} (WACC - ${(Number(s) * 100).toFixed(0)} pt)`,
+          pct(lower[s])],
+      })),
+    ]));
+  parts.push(el("div", { class: "pair" }, bridge, lowerWacc));
   parts.push(el("h3", {}, "Sensitivity"));
-  parts.push(gridTable(d.sensitivity,
-    `Value per share (${ccy}): WACC (rows) vs terminal growth (columns)`, "WACC"));
-  parts.push(gridTable(d.margin_sensitivity,
-    `Value per share (${ccy}): EBIT margin (rows) vs revenue growth (columns)`, "EBIT margin"));
+  parts.push(el("div", { class: "grid-tables" },
+    gridTable(d.sensitivity,
+      `Value per share (${ccy}): WACC (rows) vs terminal growth (columns)`, "WACC"),
+    gridTable(d.margin_sensitivity,
+      `Value per share (${ccy}): EBIT margin (rows) vs revenue growth (columns)`, "EBIT margin")));
   return card("Reverse DCF and DCF", ...parts);
 }
 
@@ -439,6 +531,8 @@ function chartBox(title, type, years, key, fmt) {
   const draw = () => {
     if (typeof Chart === "undefined" || !canvas.isConnected) return;
     const col = chartColors();
+    Chart.defaults.font.family = "'JetBrains Mono', ui-monospace, monospace";
+    Chart.defaults.font.size = 11;
     charts.push(new Chart(canvas, {
       type,
       data: {
@@ -534,7 +628,9 @@ function narrativeText(text) {
 
 function narrativeMessage(text) {
   const body = $("narrative-body");
-  if (body) body.textContent = text;
+  if (!body) return;
+  body.textContent = text;
+  body.classList.remove("pending");
 }
 
 function pollNarrative(ticker) {
