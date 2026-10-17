@@ -43,3 +43,18 @@ def test_chartjs_script_is_pinned_with_integrity_hash():
     assert "Chart.js/4.4.1/chart.umd.min.js" in html
     assert 'integrity="sha512-' in html and 'crossorigin="anonymous"' in html
     assert 'id="search-status"' in html and 'id="status"' in html
+
+
+def test_page_shows_a_bound_when_the_price_lies_beyond_the_growth_bracket():
+    js = (STATIC / "app.js").read_text("utf-8")
+    assert "implied_average_growth_bound" in js and "implied_growth_side" in js
+    assert "normalized_average_growth" in js
+
+
+def test_page_labels_the_weekly_close_by_its_week():
+    assert "week of ${day(a.price_date)}" in (STATIC / "app.js").read_text("utf-8")
+
+
+def test_page_says_to_reload_when_the_narrative_poll_gives_up():
+    js = (STATIC / "app.js").read_text("utf-8")
+    assert "The written analysis is still being produced; reload in a few minutes." in js

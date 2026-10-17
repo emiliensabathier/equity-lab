@@ -28,9 +28,7 @@ from vlab.data.loader import (
 )
 from vlab.dcf import MAX_VALUATION_LAG, Assumptions, growth_path
 from vlab.errors import DataError, ValuationError
-from vlab.fundamentals import drivers_from
 from vlab.pipeline import DAYS_PER_YEAR, TERMINAL_GROWTH, CompanyResult, value_company
-from vlab.reverse import GROWTH_BRACKET, GrowthOutOfRange
 
 from elab.config import (
     INDEX_CURRENCY,
@@ -99,17 +97,31 @@ def _grid(table: pd.DataFrame) -> dict:
     }
 
 
+def _five_year_average(first_year: float) -> float:
+    """Mean of the path vlab grows revenue along: first year fading linearly to terminal."""
+    path = growth_path(Assumptions(first_year, 0.0, TERMINAL_GROWTH, 1.0))
+    return sum(path) / len(path)
+
+
 def _dcf_section(result: CompanyResult, index: str) -> dict:
+    """The DCF, kept whole when the price lies beyond the growth bracket: the implied growth
+    is then None and ``implied_growth_side`` and ``implied_growth_bound`` say where it lies."""
+    bound = result.implied_growth_bound
     return {
         "status": "ok",
         "value_per_share": result.value_per_share,
         "implied_growth": result.implied_growth,
         "implied_average_growth": result.implied_average_growth,
+        "implied_growth_side": result.implied_growth_side,
+        "implied_growth_bound": bound,
+        "implied_average_growth_bound": None if bound is None else _five_year_average(bound),
         "implied_average_growth_at_lower_wacc": {
             f"{step:.2f}": growth
             for step, growth in result.implied_average_growth_at_lower_wacc.items()
         },
         "normalized_growth": result.normalized_growth,
+        # The verdict compares like with like: the history faded along the same path.
+        "normalized_average_growth": _five_year_average(result.normalized_growth),
         "wacc": result.wacc,
         "beta": result.beta,
         "beta_index": index,
@@ -134,9 +146,8 @@ def _index_conversion(meta: CompanyMeta) -> str | None:
 def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series:
     """The benchmark's weekly closes in the stock's trading currency, as the spec regresses."""
     index = meta.market_index
-    market = load_prices([index], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)[
-        index
-    ]
+    closes = load_prices([index], cache_dir=cache_dir, refresh=True, fetcher=fetchers.prices)
+    market = closes[index]
     trading = _index_conversion(meta)
     if trading is None:
         return market
@@ -149,31 +160,6 @@ def _market(meta: CompanyMeta, fetchers: Fetchers, cache_dir: Path) -> pd.Series
             f"index to {trading} for the beta regression"
         )
     return (both.iloc[:, 0] / both.iloc[:, 1]).rename(index)
-
-
-def _bracket_miss(
-    exc: GrowthOutOfRange, normalized_growth: float, price: float, ccy: str
-) -> dict:
-    """The DCF section when the price lies beyond the growth bracket: which side, and how far.
-
-    The reason is written here rather than taken from the solver, whose message quotes the
-    price in the reporting currency: for a cross-currency listing it would sit next to a
-    verdict in another.
-    """
-    path = growth_path(Assumptions(exc.bound, 0.0, TERMINAL_GROWTH, 1.0))
-    word = "higher" if exc.side == "above" else "lower"
-    return {
-        "status": "unavailable",
-        "reason": (
-            f"No first-year revenue growth between {GROWTH_BRACKET[0]:.0%} and "
-            f"{GROWTH_BRACKET[1]:.0%} reproduces the price of {price:,.2f} {ccy}: it implies "
-            f"a {word} rate."
-        ),
-        "implied_growth_side": exc.side,
-        "implied_growth_bound": exc.bound,
-        "implied_average_growth_bound": sum(path) / len(path),
-        "normalized_growth": normalized_growth,
-    }
 
 
 def _run_dcf(
@@ -193,6 +179,7 @@ def _run_dcf(
         statement_fetcher=lambda _ticker: statements,
         price_fetcher=fetchers.prices, risk_free=RISK_FREE[ccy],
         max_valuation_lag=MAX_VALUATION_LAG_YEARS, beta_currency="trading",
+        keep_on_growth_miss=True,
     )
 
 
@@ -319,19 +306,20 @@ def _beyond_bracket(price: float, ccy: str, dcf: dict) -> str:
         f"\u2014 the {edge} rate this model can solve for "
         f"({dcf['implied_growth_bound']:.0%} in the first year, fading to "
         f"{TERMINAL_GROWTH:.0%}) \u2014 so it cannot say how much {more}. The company's "
-        f"normalized history is {dcf['normalized_growth']:.1%}."
+        f"normalized history, faded the same way, averages "
+        f"{dcf['normalized_average_growth']:.1%} over five years."
     )
 
 
 def _verdict(price: float, ccy: str, dcf: dict) -> str | None:
-    if "implied_growth_side" in dcf:
-        return _beyond_bracket(price, ccy, dcf)
     if dcf["status"] != "ok":
         return None
+    if dcf["implied_growth_side"] is not None:
+        return _beyond_bracket(price, ccy, dcf)
     return (
         f"At {price:,.2f} {ccy}, the market prices {dcf['implied_average_growth']:.1%} "
-        f"average revenue growth over five years; the company's normalized history is "
-        f"{dcf['normalized_growth']:.1%}."
+        f"average revenue growth over five years; the company's normalized history, faded "
+        f"the same way, averages {dcf['normalized_average_growth']:.1%} over five years."
     )
 
 
@@ -350,7 +338,7 @@ def _header(ticker: str, meta: CompanyMeta) -> dict:
 
 def _sections(
     meta: CompanyMeta, raw: Statements, prices: pd.DataFrame, fetchers: Fetchers,
-    cache_dir: Path, price: float,
+    cache_dir: Path,
 ) -> tuple[dict, dict, list[str]]:
     """The DCF and health sections plus the limits, each failure contained in its section."""
     health_filled: tuple[str, ...] = ()
@@ -362,17 +350,11 @@ def _sections(
     filled: tuple[str, ...] = ()
     blank: tuple[str, ...] = ()
     carried: tuple[Carried, ...] = ()
-    normalized_growth = math.nan
     try:
         statements, filled = fill_defaults(raw)
         statements, carried, blank = fill_blank_years(statements)
-        # Read before the DCF so the bracket-miss handler below has nothing left to compute
-        # that could raise outside this try.
-        normalized_growth = drivers_from(statements, meta.company.ticker).revenue_growth
         dcf = _dcf_section(_run_dcf(meta, statements, prices, fetchers, cache_dir),
                            meta.market_index)
-    except GrowthOutOfRange as exc:
-        dcf = _bracket_miss(exc, normalized_growth, price, meta.company.trading_currency)
     except (DataError, ValuationError) as exc:
         dcf = _unavailable(exc)
     defaulted = filled + tuple(line for line in health_filled if line not in filled)
@@ -421,7 +403,7 @@ def _analyze(ticker: str, fetchers: Fetchers, cache_dir: Path) -> dict:
         dcf = health = _unavailable(exc)
         limits = _limits(meta, (), None)
     else:
-        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir, price)
+        dcf, health, limits = _sections(meta, raw, prices, fetchers, cache_dir)
     # Coverage ignores multiples: they depend on a weekly job, not on this company's own data.
     full = dcf["status"] == "ok" and health["status"] == "ok"
     return {

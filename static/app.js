@@ -6,6 +6,7 @@ const NARRATIVE_POLL_MS = 5000;
 const NARRATIVE_MAX_MS = 180000;
 const NETWORK_MESSAGE = "Data source unavailable, try again in a minute.";
 const NARRATIVE_FAILED = "Written analysis unavailable right now; the figures above are complete.";
+const NARRATIVE_LATER = "The written analysis is still being produced; reload in a few minutes.";
 const REPO_URL = "https://github.com/emiliensabathier/equity-lab";
 const VLAB_URL = "https://github.com/emiliensabathier/valuation-lab";
 const NA = "n/a";
@@ -337,9 +338,17 @@ function verdictCard(a) {
     el("p", { class: "name" }, `${a.name} · ${a.ticker} · ${a.exchange}`),
     el("dl", { class: "kpis" },
       kpi("Price", money(a.price, a.trading_currency)),
-      kpi("Price date", day(a.price_date)),
+      kpi("Price date", `week of ${day(a.price_date)}`),
       kpi("Sector", a.sector || NA),
       kpi("Reporting currency", a.reporting_currency || NA)));
+}
+
+// Beyond the growth bracket the solver has no figure, only the bound the price lies past.
+function impliedAverage(d) {
+  if (isNum(d.implied_average_growth) || !d.implied_growth_side) {
+    return pct(d.implied_average_growth);
+  }
+  return `${d.implied_growth_side} ${pct(d.implied_average_growth_bound)}`;
 }
 
 function dcfCard(a) {
@@ -350,8 +359,8 @@ function dcfCard(a) {
     el("dl", { class: "kpis" },
       kpi("Price", money(a.price, ccy)),
       kpi("DCF value per share", money(d.value_per_share, ccy)),
-      kpi("Implied growth, 5-yr average", pct(d.implied_average_growth)),
-      kpi("Normalized history", pct(d.normalized_growth))),
+      kpi("Implied growth, 5-yr average", impliedAverage(d)),
+      kpi("Normalized history, 5-yr average", pct(d.normalized_average_growth))),
     el("p", { class: "note" },
       "The reverse DCF solves for the revenue growth that makes the DCF equal the price. "
       + "The DCF value uses the company's own normalized history."),
@@ -369,7 +378,7 @@ function dcfCard(a) {
   const lower = d.implied_average_growth_at_lower_wacc || {};
   const steps = Object.keys(lower).sort((x, y) => Number(x) - Number(y));
   parts.push(table(null, ["WACC", "Implied 5-yr average growth"], [
-    { cells: [`${pct(d.wacc)} (base)`, pct(d.implied_average_growth)] },
+    { cells: [`${pct(d.wacc)} (base)`, impliedAverage(d)] },
     ...steps.map((s) => ({
       cells: [`${pct(d.wacc - Number(s))} (WACC - ${(Number(s) * 100).toFixed(0)} pt)`,
         pct(lower[s])],
@@ -557,10 +566,8 @@ function pollNarrative(ticker) {
       return;
     }
     if (body.status === "ready") { narrativeText(body.text || ""); return; }
-    if (body.status === "unavailable" || Date.now() - started >= NARRATIVE_MAX_MS) {
-      narrativeMessage(NARRATIVE_FAILED);
-      return;
-    }
+    if (body.status === "unavailable") { narrativeMessage(NARRATIVE_FAILED); return; }
+    if (Date.now() - started >= NARRATIVE_MAX_MS) { narrativeMessage(NARRATIVE_LATER); return; }
     later();
   };
   tick();

@@ -7,6 +7,7 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
+from vlab.dcf import Assumptions, growth_path
 from vlab.wacc import EQUITY_RISK_PREMIUM
 
 from elab.config import RISK_FREE
@@ -90,8 +91,8 @@ def test_analyze_full_coverage_returns_verdict_and_sections(tmp_path):
     assert len(dcf["margin_sensitivity"]["cols"]) == 5
     assert got["verdict"] == (
         f"At {LAST_PRICE:,.2f} EUR, the market prices {dcf['implied_average_growth']:.1%} "
-        f"average revenue growth over five years; the company's normalized history is "
-        f"{dcf['normalized_growth']:.1%}."
+        f"average revenue growth over five years; the company's normalized history, faded "
+        f"the same way, averages {dcf['normalized_average_growth']:.1%} over five years."
     )
     health = got["health"]
     assert health["status"] == "ok"
@@ -185,10 +186,27 @@ def test_analyze_pence_listing_scales_price(tmp_path):
     assert got["dcf"]["beta_index"] == "^FTSE"
 
 
-def test_analyze_implied_growth_outside_bracket_is_unavailable_not_raised(tmp_path):
+def test_the_normalized_history_is_averaged_along_the_path_the_implied_growth_follows(tmp_path):
+    # Like with like: the implied figure is a five-year average of a fading path, so the
+    # history is faded the same way before the two are compared.
+    got = analyze("ACME.PA", fetchers=_fetchers(), cache_dir=tmp_path)
+
+    dcf = got["dcf"]
+    path = growth_path(Assumptions(dcf["normalized_growth"], 0.0, 0.02, 1.0))
+    assert dcf["normalized_average_growth"] == pytest.approx(sum(path) / len(path))
+    assert dcf["implied_growth_side"] is None
+    assert dcf["implied_average_growth_bound"] is None
+
+
+def test_a_price_beyond_the_bracket_keeps_the_valuation_and_its_grids(tmp_path):
     got = analyze("ACME.PA", fetchers=_fetchers(last_price=1e6), cache_dir=tmp_path)
 
-    assert got["dcf"]["status"] == "unavailable"
+    dcf = got["dcf"]
+    assert dcf["status"] == "ok"
+    assert dcf["implied_growth"] is None
+    assert dcf["implied_average_growth"] is None
+    assert dcf["value_per_share"] > 0.0
+    assert len(dcf["sensitivity"]["values"]) == 5
     assert got["health"]["status"] == "ok"
 
 
@@ -203,8 +221,8 @@ def test_a_price_above_the_bracket_still_gets_a_verdict_naming_the_side(tmp_path
     assert got["verdict"] == (
         "At 1,000,000.00 EUR, the price implies more than 26.0% average revenue growth over "
         "five years \u2014 the highest rate this model can solve for (50% in the first year, "
-        "fading to 2%) \u2014 so it cannot say how much more. The company's normalized history "
-        f"is {dcf['normalized_growth']:.1%}."
+        "fading to 2%) \u2014 so it cannot say how much more. The company's normalized history, "
+        f"faded the same way, averages {dcf['normalized_average_growth']:.1%} over five years."
     )
 
 
@@ -226,10 +244,8 @@ def test_a_cross_currency_listing_beyond_the_bracket_states_its_trading_price(tm
     info = _info(currency="CHF", financialCurrency="EUR", exchange="EBS")
     got = analyze("ACME.SW", fetchers=_fetchers(info=info, last_price=1e6), cache_dir=tmp_path)
 
-    reason = got["dcf"]["reason"]
-    assert "1,000,000.00 CHF" in reason
-    assert "EUR" not in reason
     assert got["verdict"].startswith("At 1,000,000.00 CHF")
+    assert "EUR" not in got["verdict"]
 
 
 def test_a_likely_adr_is_not_covered_and_fetches_no_prices(tmp_path):
@@ -242,24 +258,6 @@ def test_a_likely_adr_is_not_covered_and_fetches_no_prices(tmp_path):
     assert got["coverage"] == "not_covered"
     assert got["verdict"] is None
     assert "likely an ADR" in got["limits"][0]
-
-
-def test_a_failure_while_describing_a_bracket_miss_stays_in_the_section(tmp_path, monkeypatch):
-    # The normalized growth the verdict quotes is read before the DCF runs, so a data error
-    # there is handled like any other instead of escaping from the bracket-miss handler.
-    from vlab.errors import DataError
-
-    import elab.engine as engine
-
-    def broken(*args, **kwargs):
-        raise DataError("boom")
-
-    monkeypatch.setattr(engine, "drivers_from", broken)
-    got = analyze("ACME.PA", fetchers=_fetchers(last_price=1e6), cache_dir=tmp_path)
-
-    assert got["dcf"] == {"status": "unavailable", "reason": "boom"}
-    assert got["verdict"] is None
-    assert got["health"]["status"] == "ok"
 
 
 def _with_years(statements, years: list[str]):
