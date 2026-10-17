@@ -160,7 +160,7 @@ function choose(i) {
   loadAnalysis(m.ticker);
 }
 
-async function runSearch(q) {
+async function runSearch(q, pickFirst = false) {
   if (searchAbort) searchAbort.abort();
   searchAbort = new AbortController();
   const mine = searchAbort;
@@ -172,15 +172,30 @@ async function runSearch(q) {
     if (!current()) return;
     if (!res.ok) {
       setSearchStatus(typeof body.detail === "string" ? body.detail : NETWORK_MESSAGE);
+      if (pickFirst) tryAsTicker(q);
       return;
     }
     const found = Array.isArray(body) ? body : [];
     showMatches(found, q);
+    if (pickFirst && found.length) {
+      choose(0);
+      return;
+    }
     setSearchStatus(found.length ? "" : "No match for this search.");
+    if (pickFirst) tryAsTicker(q);
   } catch (err) {
     if (err.name === "AbortError" || !current()) return;
     setSearchStatus(NETWORK_MESSAGE);
+    if (pickFirst) tryAsTicker(q);
   }
+}
+
+// Last resort for Enter: the search found nothing, so the text may be a ticker typed as is.
+function tryAsTicker(q) {
+  const ticker = q.toUpperCase();
+  if (!TICKER_RE.test(ticker)) return;
+  setSearchStatus("");
+  loadAnalysis(ticker, q);
 }
 
 input.addEventListener("input", () => {
@@ -199,13 +214,12 @@ function submit() {
   const q = input.value.trim();
   if (matches.length && listFor === q) {
     choose(active >= 0 ? active : 0);
-  } else if (TICKER_RE.test(q.toUpperCase())) {
-    dismiss();
-    setSearchStatus("");
-    loadAnalysis(q.toUpperCase());
   } else if (q.length >= MIN_QUERY) {
+    // Search first: "apple" is a company name before it is a ticker.
     clearTimeout(searchTimer);
-    runSearch(q);
+    runSearch(q, true);
+  } else if (TICKER_RE.test(q.toUpperCase())) {
+    tryAsTicker(q);
   }
 }
 
@@ -236,7 +250,7 @@ function destroyCharts() {
   charts = [];
 }
 
-async function loadAnalysis(ticker) {
+async function loadAnalysis(ticker, typed) {
   stopNarrative();
   if (loadAbort) loadAbort.abort();
   loadAbort = new AbortController();
@@ -250,9 +264,12 @@ async function loadAnalysis(ticker) {
     const body = await res.json();
     if (mine.signal.aborted) return;
     if (!res.ok) {
-      setStatus(typeof body.detail === "string" ? body.detail : NETWORK_MESSAGE, true);
+      const notFound = res.status === 404 && typed;
+      setStatus(notFound ? `No company found for \u201c${typed}\u201d.`
+        : typeof body.detail === "string" ? body.detail : NETWORK_MESSAGE, true);
       return;
     }
+    input.value = body.name || String(body.ticker || ticker).toUpperCase();
     history.replaceState(null, "", "?t=" + encodeURIComponent(body.ticker || ticker));
     setStatus("", false);
     render(body);
@@ -395,7 +412,7 @@ function multiplesCard(m, a) {
   ];
   return card("Multiples vs peers",
     el("p", { class: "note" }, `Peers chosen by ${m.basis || "industry"}, nearest by market cap.`),
-    table(null, ["Company", "Mkt cap (own listing ccy)", "EV/EBITDA", "EV/Sales", "P/E"], rows),
+    table(null, ["Company", "Mkt cap", "EV/EBITDA", "EV/Sales", "P/E"], rows),
     m.note ? el("p", { class: "note" }, m.note) : null);
 }
 
@@ -469,7 +486,15 @@ function healthCard(h, a) {
     el("div", { class: "charts" }, ...boxes.map((b) => b.node)),
     el("h3", {}, "Leverage"), leverage);
   // Chart.js needs the canvases attached to the document before it can size them.
-  requestAnimationFrame(() => boxes.forEach((b) => b.draw()));
+  requestAnimationFrame(() => {
+    try {
+      boxes.forEach((b) => b.draw());
+    } catch (err) {
+      console.error("charts failed:", err);
+      destroyCharts();
+      node.replaceChildren(el("h2", {}, "Financial health"), healthTable(years, ccy));
+    }
+  });
   return node;
 }
 
