@@ -118,6 +118,12 @@ def test_non_equity_or_empty_info_raises_unknown_ticker(info):
     assert isinstance(exc.value, DataError)
 
 
+def test_search_keeps_european_listings_valued_against_the_fallback_index():
+    # Direct entry of EQNR.OL is covered (STOXX 600 fallback), so search must offer it too.
+    got = search("equinor", lambda q: [_quote("EQNR.OL", "OSL"), _quote("7203.T", "JPX")])
+    assert got == [Match("EQNR.OL", "EQNR.OL name", "OSL")]
+
+
 def test_search_drops_dotless_equity_on_non_us_exchange():
     quotes = [_quote("NSRGY", "PNK"), _quote("NSRGF", "OQB"), _quote("NSRGY", "NYQ")]
     assert [m.exchange for m in search("nestle", lambda q: quotes)] == ["NYQ"]

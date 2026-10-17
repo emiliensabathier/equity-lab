@@ -112,7 +112,11 @@ def search(
         exchange = quote.get("exchange") or ""
         if quote.get("quoteType") != "EQUITY" or not symbol:
             continue
-        if exchange not in US_EXCHANGES and (_suffix(symbol) or None) not in INDEX_BY_SUFFIX:
+        suffix = _suffix(symbol) or None
+        # The same places direct entry covers: a benchmarked suffix or the STOXX 600 fallback.
+        if exchange not in US_EXCHANGES and not (
+            suffix in INDEX_BY_SUFFIX or suffix in FALLBACK_SUFFIXES
+        ):
             continue
         name = quote.get("longname") or quote.get("shortname") or symbol
         matches.append(Match(symbol, name, exchange))
