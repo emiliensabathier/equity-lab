@@ -105,12 +105,16 @@ def _five_year_average(first_year: float) -> float:
     return sum(path) / len(path)
 
 
-def _dcf_section(result: CompanyResult, index: str) -> dict:
+def _dcf_section(result: CompanyResult, index: str, reporting: str) -> dict:
     """The DCF, kept whole when the price lies beyond the growth bracket: the implied growth
     is then None and ``implied_growth_side`` and ``implied_growth_bound`` say where it lies."""
     bound = result.implied_growth_bound
     return {
         "status": "ok",
+        # vlab values in the currency of the accounts and converts the result at spot, so the
+        # risk-free rate is that currency's, whatever the listing trades in.
+        "model_currency": reporting,
+        "risk_free_currency": reporting,
         "value_per_share": result.value_per_share,
         "implied_growth": result.implied_growth,
         "implied_average_growth": result.implied_average_growth,
@@ -283,11 +287,18 @@ def _limits(
         f"Beta regressed on weekly returns against {meta.market_index} over five years"
         + (f", with the index converted to {converted}." if converted else ".")
     )
+    trading = meta.company.trading_currency
+    conversion = (
+        [f"DCF run in {ccy} (reporting currency) and converted to {trading} at spot."]
+        if trading != ccy
+        else []
+    )
     limits = [
         *(carried_sentence(*entry) for entry in carried),
         *(blank_years_sentence(line) for line in blank),
         *(limit_sentence(line) for line in filled),
         rf_sentence,
+        *conversion,
         beta_sentence,
     ]
     limits.extend(_age_sentence(income, price_date))
@@ -356,7 +367,7 @@ def _sections(
         statements, filled = fill_defaults(raw)
         statements, carried, blank = fill_blank_years(statements)
         dcf = _dcf_section(_run_dcf(meta, statements, prices, fetchers, cache_dir),
-                           meta.market_index)
+                           meta.market_index, meta.company.reporting_currency)
     except (DataError, ValuationError) as exc:
         dcf = _unavailable(exc)
     defaulted = filled + tuple(line for line in health_filled if line not in filled)

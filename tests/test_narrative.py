@@ -336,3 +336,8 @@ def test_rejected_narrative_is_logged(tmp_path, caplog):
         worker.request(ANALYSIS)
         worker.drain()
     assert any("narrative rejected for ACME" in r.getMessage() for r in caplog.records)
+
+
+def test_rules_say_a_reporting_currency_risk_free_rate_is_not_a_mismatch():
+    assert ("The DCF runs in the reporting currency, so the risk-free rate matches that "
+            "currency; that is not a mismatch.") in build_prompt({})

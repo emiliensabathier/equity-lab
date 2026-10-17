@@ -591,3 +591,18 @@ def test_analyze_holds_the_cross_process_engine_lock(tmp_path, monkeypatch):
     analyze("ACME.PA", fetchers=_fetchers(), cache_dir=tmp_path)
 
     assert held == [tmp_path / "engine.lock", "released"]
+
+
+def test_a_cross_currency_dcf_names_its_model_and_risk_free_currency(tmp_path):
+    info = _info(currency="CHF", financialCurrency="EUR", exchange="EBS")
+    got = analyze("ACME.SW", fetchers=_fetchers(info=info), cache_dir=tmp_path)
+
+    assert got["dcf"]["model_currency"] == got["dcf"]["risk_free_currency"] == "EUR"
+    assert "DCF run in EUR (reporting currency) and converted to CHF at spot." in got["limits"]
+
+
+def test_a_single_currency_dcf_has_no_conversion_sentence(tmp_path):
+    got = analyze("ACME.PA", fetchers=_fetchers(), cache_dir=tmp_path)
+
+    assert got["dcf"]["model_currency"] == got["dcf"]["risk_free_currency"] == "EUR"
+    assert not any(line.startswith("DCF run in") for line in got["limits"])

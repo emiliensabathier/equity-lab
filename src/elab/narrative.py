@@ -36,7 +36,8 @@ RULES = (
     "points; what would change the reading. Quote only figures present in the JSON. "
     "Never use the words buy, sell, undervalued, overvalued, target. Do not give advice. "
     "Write in English. Use '.' as the decimal separator. Large amounts may be written in "
-    "billions or millions (e.g. 263.3 billion)."
+    "billions or millions (e.g. 263.3 billion). The DCF runs in the reporting currency, so the "
+    "risk-free rate matches that currency; that is not a mismatch."
 )
 SCALE_EXPONENTS = (3, 6, 9, 12)
 
