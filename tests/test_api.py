@@ -43,7 +43,7 @@ def env(tmp_path, monkeypatch):
     static.mkdir()
     (static / "index.html").write_text("<h1>equity-lab</h1>")
     (static / "app.js").write_text("// js")
-    state = {"calls": 0, "behavior": lambda t: {**ANALYSIS, "ticker": t}, "now": 0.0}
+    state = {"calls": 0, "behavior": lambda t: {**ANALYSIS, "ticker": t}, "now": 0.0, "searches": 0}
 
     def fake_analyze(ticker, *, fetchers, cache_dir):
         state["calls"] += 1
@@ -54,11 +54,16 @@ def env(tmp_path, monkeypatch):
     worker = StubWorker()
     fetchers = Fetchers(statements=None, prices=None, info=None)
     quotes = [{"symbol": "ACME", "longname": "Acme Inc", "exchange": "NMS", "quoteType": "EQUITY"}]
+
+    def searcher(q):
+        state["searches"] += 1
+        return quotes
+
     app = create_app(
         fetchers=fetchers,
         cache=cache,
         worker=worker,
-        searcher=lambda q: quotes,
+        searcher=searcher,
         cache_dir=tmp_path,
         static_dir=static,
         clock=lambda: state["now"],
@@ -204,6 +209,27 @@ def test_search_returns_matches(env):
     assert res.json() == [{"ticker": "ACME", "name": "Acme Inc", "exchange": "NMS"}]
 
 
+def test_search_results_are_cached_for_ten_minutes_by_normalized_query(env):
+    client, state = env["client"], env["state"]
+    first = client.get("/api/search", params={"q": " Acme "}).json()
+    assert client.get("/api/search", params={"q": "acme"}).json() == first
+    assert state["searches"] == 1
+    state["now"] += 10 * 60
+    client.get("/api/search", params={"q": "ACME"})
+    assert state["searches"] == 2
+
+
+def test_search_is_limited_per_address_to_sixty_a_minute(env):
+    client, state = env["client"], env["state"]
+    for _ in range(60):
+        assert client.get("/api/search", params={"q": "acme"}).status_code == 200
+    res = client.get("/api/search", params={"q": "acme"})
+    assert res.status_code == 429
+    assert isinstance(res.json()["detail"], str)
+    state["now"] += 60
+    assert client.get("/api/search", params={"q": "acme"}).status_code == 200
+
+
 def test_search_short_query_is_empty(env):
     assert env["client"].get("/api/search", params={"q": "a"}).json() == []
     assert env["client"].get("/api/search").json() == []
@@ -314,3 +340,13 @@ def test_limiter_evicts_idle_keys():
     now[0] = 20.0
     limiter.try_acquire("b")
     assert "a" not in limiter._hits
+
+
+def test_search_cache_drops_the_oldest_entry_past_its_size():
+    from elab.api import TtlCache
+
+    cache = TtlCache(timedelta(minutes=10), max_size=2, clock=lambda: 0.0)
+    for key in ("a", "b", "c"):
+        cache.set(key, [{"ticker": key}])
+    assert cache.get("a") is None
+    assert cache.get("c") == [{"ticker": "c"}]

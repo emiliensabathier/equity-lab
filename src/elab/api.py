@@ -30,6 +30,7 @@ from elab.resolve import UnknownTicker, search
 log = logging.getLogger(__name__)
 
 RATE_LIMIT_MESSAGE = "Too many new analyses from this address; cached companies stay available."
+SEARCH_RATE_MESSAGE = "Too many searches from this address; try again in a minute."
 UNAVAILABLE_MESSAGE = "Data source unavailable, try again in a minute."
 LOOPBACK = frozenset({"127.0.0.1", "::1", "::ffff:127.0.0.1"})
 _TICKER = re.compile(config.TICKER_PATTERN)
@@ -65,6 +66,34 @@ class SlidingWindowLimiter:
             return True
 
 
+class TtlCache:
+    """Thread-safe in-memory map whose entries expire; the oldest go first past ``max_size``."""
+
+    def __init__(self, ttl: timedelta, max_size: int, clock: Callable[[], float]) -> None:
+        self._ttl = ttl.total_seconds()
+        self._max_size = max_size
+        self._clock = clock
+        self._entries: dict[str, tuple[float, list[dict]]] = {}
+        self._lock = threading.Lock()
+
+    def get(self, key: str) -> list[dict] | None:
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is None or self._clock() - entry[0] >= self._ttl:
+                return None
+            return entry[1]
+
+    def set(self, key: str, value: list[dict]) -> None:
+        now = self._clock()
+        with self._lock:
+            self._entries = {
+                k: v for k, v in self._entries.items() if now - v[0] < self._ttl and k != key
+            }
+            while len(self._entries) >= self._max_size:
+                del self._entries[next(iter(self._entries))]
+            self._entries[key] = (now, value)
+
+
 def client_ip(request: Request) -> str:
     """Peer address; X-Forwarded-For's first hop only when the peer is our local proxy."""
     peer = request.client.host if request.client else "unknown"
@@ -98,6 +127,8 @@ def create_app(
     narrative_limiter = SlidingWindowLimiter(
         config.NARRATIVE_JOBS_PER_HOUR, config.RATE_WINDOW, clock
     )
+    search_limiter = SlidingWindowLimiter(config.SEARCHES_PER_MINUTE, config.SEARCH_WINDOW, clock)
+    search_cache = TtlCache(config.SEARCH_CACHE_TTL, config.SEARCH_CACHE_MAX, clock)
     ticker_locks: dict[str, threading.Lock] = {}
     locks_guard = threading.Lock()
 
@@ -113,12 +144,20 @@ def create_app(
         return JSONResponse({"detail": UNAVAILABLE_MESSAGE}, status_code=503)
 
     @app.get("/api/search")
-    def api_search(q: str = "") -> list[dict]:
+    def api_search(request: Request, q: str = "") -> list[dict]:
+        if not search_limiter.try_acquire(client_ip(request)):
+            raise HTTPException(429, SEARCH_RATE_MESSAGE)
+        key = q.strip().lower()
+        cached = search_cache.get(key)
+        if cached is not None:
+            return cached
         try:
-            return [asdict(m) for m in search(q, searcher, local_names)]
+            found = [asdict(m) for m in search(q, searcher, local_names)]
         except Exception:
             log.exception("search failed")
             raise HTTPException(503, "Search is unavailable, try again in a minute.") from None
+        search_cache.set(key, found)
+        return found
 
     @app.get("/api/analysis/{ticker}")
     def api_analysis(ticker: str, request: Request) -> dict:

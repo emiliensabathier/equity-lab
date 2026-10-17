@@ -157,6 +157,11 @@ ANALYSIS_TTL = timedelta(hours=24)
 COLD_ANALYSES_PER_HOUR = 10
 NARRATIVE_JOBS_PER_HOUR = 5
 RATE_WINDOW = timedelta(hours=1)
+# Search is typed live, so its budget is per minute; answers are kept briefly per query.
+SEARCHES_PER_MINUTE = 60
+SEARCH_WINDOW = timedelta(minutes=1)
+SEARCH_CACHE_TTL = timedelta(minutes=10)
+SEARCH_CACHE_MAX = 2000
 
 # Weekly pre-generation: liquid non-financial names (banks and insurers are "not covered", so
 # they would only burn time). Pages for these load instantly from the cache.
