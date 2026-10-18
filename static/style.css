@@ -28,6 +28,8 @@
     color-scheme: dark;
 }
 * { box-sizing: border-box; }
+/* Site nav: align it on this page's 1080 px column. */
+.es-nav .es-wrap { max-width: 1080px; padding-inline: 24px; }
 html { color-scheme: light dark; scroll-padding-top: 64px; }
 body {
   margin: 0; background: var(--paper); color: var(--ink);

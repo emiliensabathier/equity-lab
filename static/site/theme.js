@@ -1,4 +1,4 @@
-/* GENERATED from emiliensabathier/site src/site/theme.js. Do not edit. */
+/* GENERATED from emiliensabathier/site src/site/theme.js. Do not edit. body-sha256: 599976dabff2c6e9dda9407c06c4c9d5eee74e88ec6372444a5203781f54fd91 */
 // Loaded synchronously in <head>: applies the saved theme before first paint, then wires the
 // nav button (hidden until this script runs, so it never shows without JavaScript).
 // The choice is a cookie shared by emiliensabathier.fr and its subdomains (Terminal, analyse.).
@@ -25,6 +25,8 @@
       button.textContent = button.getAttribute('data-label-' + current());
     }
     button.hidden = false;
+    var item = button.closest ? button.closest('[data-theme-item]') : null;
+    if (item) item.hidden = false;
     paint();
     button.addEventListener('click', function () {
       var next = { system: 'light', light: 'dark', dark: 'system' }[current()];

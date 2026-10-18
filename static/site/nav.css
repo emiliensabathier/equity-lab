@@ -1,4 +1,4 @@
-/* GENERATED from emiliensabathier/site src/site/nav.css. Do not edit. */
+/* GENERATED from emiliensabathier/site src/site/nav.css. Do not edit. body-sha256: cefd18a5601661148be26aa2afdd2673fbc9c346f72058eb2801706239f9ce04 */
 /* Shared site chrome (container, nav, market strip, footer). Every class is es- prefixed so the
    file can be dropped into the Terminal and the lab reports without colliding with their CSS. */
 .es-wrap { max-width: 1000px; margin: 0 auto; padding-inline: 28px; }
@@ -30,4 +30,5 @@
 @media (max-width: 760px) {
   .es-wrap { padding-inline: 18px; }
   .es-strip-stamp { margin-left: 0; }
+  .es-strip-inner { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
 }

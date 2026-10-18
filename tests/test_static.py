@@ -88,13 +88,28 @@ def test_page_carries_the_site_nav_and_shared_theme():
         assert re.search(rf'<link rel="stylesheet" href="/static/site/{name}\?v=\w+">', html)
     head = html[: html.index("</head>")]
     assert re.search(r'<script src="/static/site/theme\.js\?v=\w+"></script>', head), "theme.js must load in <head>, not deferred"
-    assert 'data-theme-toggle hidden' in html
+    assert '<li data-theme-item hidden><button type="button" class="es-nav-theme" data-theme-toggle ' in html
 
 
 def test_site_assets_are_unedited_copies():
+    import hashlib
+
     for name in ("tokens.css", "nav.css", "theme.js"):
         text = (STATIC / "site" / name).read_text("utf-8")
-        assert text.startswith("/* GENERATED from emiliensabathier/site"), name
+        header, _, body = text.partition("\n")
+        m = re.search(r"body-sha256: ([0-9a-f]{64})", header)
+        assert header.startswith("/* GENERATED from emiliensabathier/site") and m, name
+        assert hashlib.sha256(body.encode("utf-8")).hexdigest() == m.group(1), f"{name} was edited by hand"
+
+
+def test_site_tokens_load_before_the_page_styles():
+    html = (STATIC / "index.html").read_text("utf-8")
+    assert html.index("/static/site/tokens.css") < html.index("/static/style.css")
+
+
+def test_nav_column_matches_the_page_column():
+    css = (STATIC / "style.css").read_text("utf-8")
+    assert re.search(r"\.es-nav \.es-wrap\s*\{[^}]*max-width:\s*1080px", css)
 
 
 def test_dark_tokens_follow_the_shared_theme_choice():
