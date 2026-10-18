@@ -544,6 +544,23 @@ function chartColors() {
   return { bar: get("--bar"), line: get("--accent"), grid: get("--grid"), text: get("--muted") };
 }
 
+// Chart colours come from CSS variables: repaint live charts when the theme changes
+// (site nav button sets data-theme on <html>; the OS can switch light/dark too).
+function recolourCharts() {
+  const col = chartColors();
+  for (const c of charts) {
+    const ds = c.data.datasets[0];
+    ds.backgroundColor = col.bar;
+    ds.borderColor = col.line;
+    c.options.scales.x.ticks.color = col.text;
+    c.options.scales.y.ticks.color = col.text;
+    c.options.scales.y.grid.color = col.grid;
+    c.update("none");
+  }
+}
+new MutationObserver(recolourCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", recolourCharts);
+
 function chartBox(title, type, years, key, fmt) {
   const summary = years.map((y) => `${y.fiscal_year.slice(0, 4)}: ${fmt(y[key])}`).join(", ");
   const canvas = el("canvas", { role: "img", "aria-label": `${title}. ${summary}` });

@@ -56,7 +56,9 @@ def test_scripts_are_deferred_and_every_static_url_is_versioned():
     import re
 
     html = (STATIC / "index.html").read_text("utf-8")
-    assert len(re.findall(r"<script defer src=", html)) == html.count("<script")
+    # One exception: the shared theme script runs in <head> before first paint (no theme flash).
+    theme = '<script src="/static/site/theme.js?v='
+    assert len(re.findall(r"<script defer src=", html)) == html.count("<script") - html.count(theme)
     for url in re.findall(r'(?:src|href)="(/static/[^"]+)"', html):
         if "/fonts/" not in url:  # fonts are preloaded and fetched from the CSS by plain URL
             assert "?v=" in url, url
@@ -84,7 +86,8 @@ def test_page_carries_the_site_nav_and_shared_theme():
     assert 'href="https://emiliensabathier.fr/labs/"' in html
     for name in ("tokens.css", "nav.css"):
         assert re.search(rf'<link rel="stylesheet" href="/static/site/{name}\?v=\w+">', html)
-    assert re.search(r'<script defer src="/static/site/theme\.js\?v=\w+"></script>', html)
+    head = html[: html.index("</head>")]
+    assert re.search(r'<script src="/static/site/theme\.js\?v=\w+"></script>', head), "theme.js must load in <head>, not deferred"
     assert 'data-theme-toggle hidden' in html
 
 
@@ -98,3 +101,10 @@ def test_dark_tokens_follow_the_shared_theme_choice():
     css = (STATIC / "style.css").read_text("utf-8")
     assert ':root[data-theme="dark"]' in css
     assert ':root:not([data-theme="light"])' in css
+
+
+def test_charts_follow_a_theme_change():
+    js = (STATIC / "app.js").read_text("utf-8")
+    assert "function recolourCharts()" in js
+    assert 'attributeFilter: ["data-theme"]' in js
+    assert '(prefers-color-scheme: dark)' in js
