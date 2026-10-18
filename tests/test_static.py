@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -75,3 +76,25 @@ def test_page_labels_the_weekly_close_by_its_week():
 def test_page_says_to_reload_when_the_narrative_poll_gives_up():
     js = (STATIC / "app.js").read_text("utf-8")
     assert "The written analysis is still being produced. Reload in a few minutes." in js
+
+
+def test_page_carries_the_site_nav_and_shared_theme():
+    html = (STATIC / "index.html").read_text("utf-8")
+    assert '<header class="es-nav">' in html
+    assert 'href="https://emiliensabathier.fr/labs/"' in html
+    for name in ("tokens.css", "nav.css"):
+        assert re.search(rf'<link rel="stylesheet" href="/static/site/{name}\?v=\w+">', html)
+    assert re.search(r'<script defer src="/static/site/theme\.js\?v=\w+"></script>', html)
+    assert 'data-theme-toggle hidden' in html
+
+
+def test_site_assets_are_unedited_copies():
+    for name in ("tokens.css", "nav.css", "theme.js"):
+        text = (STATIC / "site" / name).read_text("utf-8")
+        assert text.startswith("/* GENERATED from emiliensabathier/site"), name
+
+
+def test_dark_tokens_follow_the_shared_theme_choice():
+    css = (STATIC / "style.css").read_text("utf-8")
+    assert ':root[data-theme="dark"]' in css
+    assert ':root:not([data-theme="light"])' in css

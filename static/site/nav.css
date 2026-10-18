@@ -1,0 +1,33 @@
+/* GENERATED from emiliensabathier/site src/site/nav.css. Do not edit. */
+/* Shared site chrome (container, nav, market strip, footer). Every class is es- prefixed so the
+   file can be dropped into the Terminal and the lab reports without colliding with their CSS. */
+.es-wrap { max-width: 1000px; margin: 0 auto; padding-inline: 28px; }
+
+.es-nav { border-bottom: 1px solid var(--rule); background: var(--paper); font-family: var(--sans); }
+.es-nav-inner { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding-block: 16px; }
+.es-nav-mark { font: 600 1.1rem var(--serif); color: var(--ink); text-decoration: none; }
+.es-nav-links { list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 0; padding: 0; font-size: var(--text-sm); }
+.es-nav-links a, .es-nav-theme { color: var(--muted); text-decoration: none; }
+.es-nav-links a:hover, .es-nav-theme:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.es-nav-links a[aria-current="page"] { color: var(--ink); }
+.es-nav-theme { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.es-nav a:focus-visible, .es-nav-theme:focus-visible, .es-strip a:focus-visible { outline: 2px solid var(--pen); outline-offset: 3px; }
+
+.es-strip { background: var(--pen-wash); font: var(--text-xs)/1.5 var(--sans); font-variant-numeric: tabular-nums lining-nums; }
+.es-strip-inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 22px; padding-block: 9px; min-height: 2.6em; }
+.es-strip-link { color: var(--pen); font-weight: 600; text-underline-offset: 3px; }
+.es-strip-quotes { display: contents; }
+.es-strip-q { white-space: nowrap; color: var(--ink); }
+.es-strip-k { color: var(--muted); }
+.es-strip-c.up { color: var(--up); }
+.es-strip-c.down { color: var(--down); }
+.es-strip-stamp { color: var(--muted); margin-left: auto; }
+
+.es-foot { border-top: 1px solid var(--rule); padding-block: 18px 26px; font: var(--text-xs)/1.5 var(--sans); color: var(--muted); }
+.es-foot-inner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+.es-foot a { color: var(--muted); }
+
+@media (max-width: 760px) {
+  .es-wrap { padding-inline: 18px; }
+  .es-strip-stamp { margin-left: 0; }
+}

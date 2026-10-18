@@ -1,0 +1,54 @@
+/* GENERATED from emiliensabathier/site src/site/tokens.css. Do not edit. */
+/* Sabathier design tokens: single source for the site, the Terminal theme and the lab reports.
+   Fonts: Source Serif 4 and Public Sans, SIL OFL 1.1, self-hosted. */
+@font-face { font-family: "Source Serif 4"; font-weight: 200 900; font-display: swap;
+  src: url("/static/fonts/source-serif-4-latin-opsz-normal.woff2") format("woff2"); }
+@font-face { font-family: "Public Sans"; font-weight: 100 900; font-display: swap;
+  src: url("/static/fonts/public-sans-latin-wght-normal.woff2") format("woff2"); }
+
+:root {
+  --paper: #fdfdfb;
+  --ink: #17191e;
+  --muted: #5e6570;
+  --rule: #dcdfe3;
+  --pen: #1d3fa8;
+  --pen-wash: #eef1fb;
+  --hl: #ffe45c;
+  --hl-ink: #17191e;
+  --up: #1f7a4d;
+  --down: #b3261e;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --text-xs: .8rem;
+  --text-sm: .9rem;
+  --text-md: 1rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.4rem;
+  --text-display: clamp(2.3rem, 5vw, 3.3rem);
+  --radius: 4px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121316;
+    --ink: #e9eaec;
+    --muted: #9aa1ab;
+    --rule: #2e3137;
+    --pen: #93abff;
+    --pen-wash: #181d30;
+    --up: #5cc28f;
+    --down: #ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121316;
+  --ink: #e9eaec;
+  --muted: #9aa1ab;
+  --rule: #2e3137;
+  --pen: #93abff;
+  --pen-wash: #181d30;
+  --up: #5cc28f;
+  --down: #ff8a80;
+  color-scheme: dark;
+}
