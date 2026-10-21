@@ -103,6 +103,10 @@ def _cmd_build_peers(args: argparse.Namespace) -> int:
     if not tickers:
         log.error("no constituents fetched; peer table left untouched")
         return 1
+    # Listed comparables of group branches get their multiples from the same table.
+    from elab.groups import comparable_tickers
+
+    tickers.extend(t for t in comparable_tickers() if t not in set(tickers))
     existing = pd.read_parquet(path) if path.is_file() else None
     table = build_peer_table(tickers, default_fetchers().info, existing=existing)
     # The server reads the table while this job rewrites it: write aside, then swap atomically.

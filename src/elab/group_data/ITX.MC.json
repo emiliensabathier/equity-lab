@@ -1,0 +1,185 @@
+{
+ "ticker": "ITX.MC",
+ "name": "Inditex",
+ "currency": "EUR",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2024-01-31",
+  "2025-01-31",
+  "2026-01-31"
+ ],
+ "profit_label": "Profit before taxes",
+ "segment_basis": "retail-concept segments (IFRS 8)",
+ "sources": [
+  {
+   "title": "Inditex Group Annual Report 2025 - Consolidated Annual Accounts, Note 11 Segment reporting (FY2025 and FY2024)",
+   "url": "https://www.inditex.com/itxcomweb/api/media/50ba1fc0-3862-4408-8da2-4f973f1be18e/AnnualAccountsDirectorsReportandAuditReportconsolidated.pdf?t=1785169856929"
+  },
+  {
+   "title": "Inditex Group Annual Report 2024 - Consolidated Annual Accounts, segment reporting note (FY2024 and FY2023)",
+   "url": "https://www.inditex.com/itxcomweb/api/media/84135f02-0208-4439-b9c0-b13608fbfeb5/Annualaccountsanddirectorsreport2024consolidated.pdf?t=1742203067340"
+  },
+  {
+   "title": "Inditex FY2025 Results (1 Feb 2025 - 31 Jan 2026), sales and PBT by concept",
+   "url": "https://www.inditex.com/itxcomweb/api/media/1da2c9d1-dbca-49fb-9563-982a8a27fae6/INDITEXFullYear2025.pdf?t=1773216267196"
+  },
+  {
+   "title": "Inditex FY2024 Results (1 Feb 2024 - 31 Jan 2025), PBT by concept 2024/2023",
+   "url": "https://www.inditex.com/itxcomweb/api/media/16843322-c524-4f36-b84f-133989e4e569/INDITEXFullYear2024Results.pdf?t=1741760450878"
+  }
+ ],
+ "total": {
+  "revenue": [
+   35947,
+   38632,
+   39864
+  ],
+  "operating_profit": [
+   6870,
+   7577,
+   8020
+  ]
+ },
+ "branches": [
+  {
+   "name": "Zara / Zara Home / Lefties",
+   "revenue": [
+    26208,
+    27959,
+    28249
+   ],
+   "operating_profit": [
+    4968,
+    5409,
+    5601
+   ],
+   "brands": [
+    "Zara",
+    "Zara Home",
+    "Lefties"
+   ],
+   "comparables": [
+    {
+     "ticker": "HM-B.ST",
+     "name": "H & M Hennes & Mauritz AB (publ)"
+    },
+    {
+     "ticker": "NXT.L",
+     "name": "NEXT plc"
+    },
+    {
+     "ticker": "GAP",
+     "name": "Gap, Inc. (The)"
+    },
+    {
+     "ticker": "ANF",
+     "name": "Abercrombie & Fitch Company"
+    },
+    {
+     "ticker": "ZAL.DE",
+     "name": "Zalando SE"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Bershka",
+   "revenue": [
+    2634,
+    2941,
+    3299
+   ],
+   "operating_profit": [
+    460,
+    548,
+    657
+   ],
+   "brands": [
+    "Bershka"
+   ],
+   "comparables": [
+    {
+     "ticker": "HM-B.ST",
+     "name": "H & M Hennes & Mauritz AB (publ)"
+    },
+    {
+     "ticker": "NXT.L",
+     "name": "NEXT plc"
+    },
+    {
+     "ticker": "GAP",
+     "name": "Gap, Inc. (The)"
+    },
+    {
+     "ticker": "ANF",
+     "name": "Abercrombie & Fitch Company"
+    },
+    {
+     "ticker": "ZAL.DE",
+     "name": "Zalando SE"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Other",
+   "revenue": [
+    7303,
+    7948,
+    8559
+   ],
+   "operating_profit": [
+    1407,
+    1623,
+    1761
+   ],
+   "brands": [
+    "Pull&Bear",
+    "Massimo Dutti",
+    "Stradivarius",
+    "Oysho"
+   ],
+   "comparables": [
+    {
+     "ticker": "HM-B.ST",
+     "name": "H & M Hennes & Mauritz AB (publ)"
+    },
+    {
+     "ticker": "NXT.L",
+     "name": "NEXT plc"
+    },
+    {
+     "ticker": "GAP",
+     "name": "Gap, Inc. (The)"
+    },
+    {
+     "ticker": "ANF",
+     "name": "Abercrombie & Fitch Company"
+    },
+    {
+     "ticker": "ZAL.DE",
+     "name": "Zalando SE"
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Inter-segment",
+  "revenue": [
+   -198,
+   -216,
+   -243
+  ],
+  "operating_profit": [
+   35,
+   -3,
+   0
+  ]
+ },
+ "notes": "Revenue = net sales ('sales to third parties'); segment profit measure = profit before taxes, the only segment profit Inditex publishes (EBIT is not published by segment or concept; group EBIT was 7,997 in FY2025 and 7,554 in FY2024). FY2025 and FY2024 from the 2025 consolidated accounts; FY2023 from the 2024 consolidated accounts. FY2024 figures are identical in both reports (no restatement); the first segment was labelled 'Zara / Zara Home' in the 2024 accounts and 'Zara / Zara Home / Lefties' in the 2025 accounts with unchanged figures (Lefties historically reported within Zara). FY2025 PBT: segments + inter-segment sum to 8,019 vs published total 8,020 (rounding, inter-segment shown as '-'). 'Other' brands: the accounts say Other groups the retail concepts other than Zara, Zara Home, Lefties and Bershka; the concepts listed in Note 1 are Zara, Pull&Bear, Massimo Dutti, Bershka, Stradivarius, Oysho, Lefties and Zara Home. Finer split from the results press releases (sales / PBT, EUR m): FY2025 Zara (incl. Zara Home & Lefties) 28,051 / 5,601; Pull&Bear 2,546 / 422; Massimo Dutti 2,019 / 434; Bershka 3,286 / 657; Stradivarius 3,002 / 707; Oysho 960 / 198. FY2024: Zara 27,778 / 5,407; Pull&Bear 2,469 / 458; Massimo Dutti 1,960 / 402; Bershka 2,930 / 548; Stradivarius 2,664 / 616; Oysho 831 / 146. FY2023 PBT by concept: Zara 5,004; Pull&Bear 438; Massimo Dutti 339; Bershka 460; Stradivarius 493; Oysho 136 (FY2023 sales by concept not retrieved). Concept figures are net of intra-group sales and differ slightly from the IFRS 8 segment figures."
+}

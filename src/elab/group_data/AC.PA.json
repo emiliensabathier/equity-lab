@@ -1,0 +1,140 @@
+{
+ "ticker": "AC.PA",
+ "name": "Accor",
+ "currency": "EUR",
+ "years": [
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Recurring EBITDA",
+ "segment_basis": "divisions (IFRS 8 operating segments)",
+ "sources": [
+  {
+   "title": "Accor Full-Year 2025 Results press release (19 Feb 2026)",
+   "url": "https://assets.group.accor.com/yrj0orc8tx24/L1PRAC4g1cTgkur3lvKYa/4d76e8955b4244e2b851568ebc5fbd25/FY25_PR_vDef_BC.pdf"
+  },
+  {
+   "title": "Accor 2025 consolidated financial statements and notes (Note 4.1 Segment information)",
+   "url": "https://assets.group.accor.com/yrj0orc8tx24/4il2zwx4sZhjt12PKcRaOQ/b79b3fe310c1e296d7149c608b1f2150/Accor-2025_Notes_to_Financial_Statements.pdf"
+  },
+  {
+   "title": "Accor Full-Year 2024 Results press release (20 Feb 2025) - old presentation, used for notes only",
+   "url": "https://assets.group.accor.com/yrj0orc8tx24/2C96SdNfIPRxqrfPEnrqBW/e9fa4eb73b66041a8c7838c45c45743d/blockchained_FY_24_PR_vDef.pdf"
+  }
+ ],
+ "total": {
+  "revenue": [
+   5606,
+   5639
+  ],
+  "operating_profit": [
+   1120,
+   1201
+  ]
+ },
+ "branches": [
+  {
+   "name": "Premium, Midscale & Economy",
+   "revenue": [
+    2896,
+    2853
+   ],
+   "operating_profit": [
+    809,
+    836
+   ],
+   "brands": [
+    "ibis",
+    "Novotel",
+    "Mercure",
+    "Swissôtel",
+    "Mövenpick",
+    "Pullman"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "IHG.L",
+     "name": "InterContinental Hotels Group PLC"
+    },
+    {
+     "ticker": "MAR",
+     "name": "Marriott International, Inc."
+    },
+    {
+     "ticker": "HLT",
+     "name": "Hilton Worldwide Holdings Inc."
+    },
+    {
+     "ticker": "H",
+     "name": "Hyatt Hotels Corporation"
+    },
+    {
+     "ticker": "WH",
+     "name": "Wyndham Hotels & Resorts, Inc."
+    }
+   ]
+  },
+  {
+   "name": "Luxury & Lifestyle",
+   "revenue": [
+    1500,
+    1598
+   ],
+   "operating_profit": [
+    427,
+    482
+   ],
+   "brands": [
+    "Raffles",
+    "Fairmont",
+    "Sofitel",
+    "MGallery",
+    "Emblems",
+    "Ennismore",
+    "Paris Society",
+    "Rikas",
+    "Potel & Chabot"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "IHG.L",
+     "name": "InterContinental Hotels Group PLC"
+    },
+    {
+     "ticker": "MAR",
+     "name": "Marriott International, Inc."
+    },
+    {
+     "ticker": "HLT",
+     "name": "Hilton Worldwide Holdings Inc."
+    },
+    {
+     "ticker": "H",
+     "name": "Hyatt Hotels Corporation"
+    },
+    {
+     "ticker": "WH",
+     "name": "Wyndham Hotels & Resorts, Inc."
+    }
+   ]
+  }
+ ],
+ "other": {
+  "name": "Reimbursed Costs, Holding & Intercos",
+  "revenue": [
+   1210,
+   1188
+  ],
+  "operating_profit": [
+   -116,
+   -117
+  ]
+ },
+ "notes": "Profit measure = Recurring EBITDA (operating profit before D&A and other income and expenses), Accor's segment measure. Only FY2024 and FY2025 are given: in the FY2025 accounts Accor restated its divisional revenue presentation - 'Reimbursed Costs' (costs recharged to hotel owners, mainly luxury properties in North America, zero EBITDA) were taken out of the divisions' former 'Services to Owners' line and shown separately, the remainder becoming SMDL (Sales, Marketing, Distribution & Loyalty). FY2024 is restated in the FY2025 documents (PM&E revenue 2,896 vs 3,103 originally; L&L 1,500 vs 2,587; EBITDA unchanged), but no FY2023 divisional revenue on the new basis was found, so FY2023 was dropped. For reference, FY2023 on the old basis (FY2024 press release): revenue PM&E 2,960, L&L 2,175, Intercos (79), total 5,056; Recurring EBITDA PM&E 750, L&L 354, Holding (101), total 1,003. 'Other' = Reimbursed Costs revenue (1,294 / 1,270) + Holding & Intercos (revenue (84) / (82); EBITDA (116) / (117)). Brands: PM&E and L&L lists as named in Note 4.1 of the 2025 accounts (L&L pillars per the note: Raffles & Fairmont; Sofitel, MGallery & Emblems; Ennismore, the lifestyle activity); Paris Society, Rikas and Potel & Chabot are named by Accor as Luxury & Lifestyle Hotel Assets & Other activities."
+}

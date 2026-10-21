@@ -1,0 +1,248 @@
+{
+ "ticker": "VOW3.DE",
+ "name": "Volkswagen",
+ "currency": "EUR",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Operating result",
+ "segment_basis": "brand groups and business fields",
+ "sources": [
+  {
+   "title": "Volkswagen Group Annual Report 2025 - Brand Groups and Business Fields",
+   "url": "https://annualreport2025.volkswagen-group.com/divisions/brand-groups-and-business-fields.html"
+  },
+  {
+   "title": "Volkswagen Group Annual Report 2024 - Brands and Business Fields (2023 comparatives, adjusted)",
+   "url": "https://annualreport2024.volkswagen-group.com/divisions/brands-and-business-fields.html"
+  }
+ ],
+ "total": {
+  "revenue": [
+   322284,
+   324656,
+   321913
+  ],
+  "operating_profit": [
+   22528,
+   19060,
+   8868
+  ]
+ },
+ "branches": [
+  {
+   "name": "Core brand group",
+   "revenue": [
+    137770,
+    140004,
+    145202
+   ],
+   "operating_profit": [
+    7242,
+    6961,
+    6821
+   ],
+   "brands": [
+    "Volkswagen Passenger Cars",
+    "Škoda",
+    "SEAT/CUPRA",
+    "Volkswagen Commercial Vehicles",
+    "Tech. Components"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "STLAP.PA",
+     "name": "Stellantis N.V."
+    },
+    {
+     "ticker": "RNO.PA",
+     "name": "Renault SA"
+    },
+    {
+     "ticker": "F",
+     "name": "Ford Motor Company"
+    },
+    {
+     "ticker": "GM",
+     "name": "General Motors Company"
+    }
+   ]
+  },
+  {
+   "name": "Progressive brand group",
+   "revenue": [
+    69865,
+    64532,
+    65503
+   ],
+   "operating_profit": [
+    6280,
+    3903,
+    3371
+   ],
+   "brands": [
+    "Audi",
+    "Bentley",
+    "Lamborghini",
+    "Ducati"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "BMW.DE",
+     "name": "Bayerische Motoren Werke Aktiengesellschaft"
+    },
+    {
+     "ticker": "MBG.DE",
+     "name": "Mercedes-Benz Group AG"
+    }
+   ]
+  },
+  {
+   "name": "Sport Luxury brand group",
+   "revenue": [
+    37349,
+    36438,
+    32185
+   ],
+   "operating_profit": [
+    6938,
+    5286,
+    90
+   ],
+   "brands": [
+    "Porsche"
+   ],
+   "listed": [
+    {
+     "ticker": "P911.DE",
+     "name": "Porsche"
+    }
+   ],
+   "comparables": [
+    {
+     "ticker": "RACE.MI",
+     "name": "Ferrari N.V."
+    },
+    {
+     "ticker": "AML.L",
+     "name": "ASTON MARTIN LAGONDA GLOBAL HOL"
+    }
+   ]
+  },
+  {
+   "name": "Trucks brand group (TRATON)",
+   "revenue": [
+    45731,
+    46183,
+    42540
+   ],
+   "operating_profit": [
+    3715,
+    4204,
+    2411
+   ],
+   "brands": [
+    "Scania",
+    "MAN",
+    "International",
+    "Volkswagen Truck & Bus"
+   ],
+   "listed": [
+    {
+     "ticker": "8TRA.DE",
+     "name": "TRATON SE"
+    }
+   ],
+   "comparables": [
+    {
+     "ticker": "VOLV-B.ST",
+     "name": "AB Volvo (publ)"
+    },
+    {
+     "ticker": "DTG.DE",
+     "name": "Daimler Truck Holding AG"
+    },
+    {
+     "ticker": "PCAR",
+     "name": "PACCAR Inc"
+    }
+   ]
+  },
+  {
+   "name": "Volkswagen Group Mobility",
+   "revenue": [
+    50765,
+    54806,
+    57769
+   ],
+   "operating_profit": [
+    3248,
+    3000,
+    3451
+   ],
+   "brands": [
+    "Volkswagen Group Mobility (formerly Volkswagen Financial Services)",
+    "Volkswagen Bank"
+   ],
+   "listed": [],
+   "comparables": []
+  },
+  {
+   "name": "CARIAD",
+   "revenue": [
+    1078,
+    1327,
+    1775
+   ],
+   "operating_profit": [
+    -2392,
+    -2431,
+    -2180
+   ],
+   "brands": [
+    "CARIAD"
+   ],
+   "listed": [],
+   "comparables": []
+  },
+  {
+   "name": "Battery",
+   "revenue": [
+    31,
+    8,
+    30
+   ],
+   "operating_profit": [
+    -417,
+    -1053,
+    -1386
+   ],
+   "brands": [],
+   "listed": [],
+   "comparables": []
+  }
+ ],
+ "other": {
+  "name": "Other (consolidation, eliminations, PPA, Everllence/MAN Energy Solutions, unallocated)",
+  "revenue": [
+   -20306,
+   -18643,
+   -23092
+  ],
+  "operating_profit": [
+   -2087,
+   -810,
+   -3710
+  ]
+ },
+ "notes": "FY2024 and FY2025 from the Annual Report 2025 table 'Key figures by brand group and business field'; FY2023 from the Annual Report 2024 table (VW footnote: 'Prior-year figures adjusted' for the 2023 operating result). Restatement in AR2025: MAN Energy Solutions (renamed Everllence in 2025, majority stake being sold to Bain Capital), shown as a separate business field in AR2024 (revenue 4,044 / 4,333, operating result 369 / 337 in 2023 / 2024), is no longer shown separately; the AR2025 2024 'Other' line (revenue -18,643, OR -810) equals the AR2024 'Other' plus MAN Energy Solutions exactly, so for FY2023 MAN Energy Solutions is likewise included in 'Other' here (derived: revenue -24,350 + 4,044 = -20,306; OR -2,456 + 369 = -2,087) - this FY2023 'Other' figure is a derivation, not a published number. 'TRATON Commercial Vehicles' (AR2024) was renamed 'Trucks brand group' (same figures). 'Volkswagen Financial Services' was renamed Volkswagen Group Mobility. Sport Luxury = Porsche Automotive excluding Porsche Financial Services (incl. PFS: revenue 40,530 / 40,083 / 36,272, OR 7,284 / 5,640 (AR2025 shows 5,637) / 413). 'Other' = mainly intragroup eliminations (incl. elimination of intercompany profits), PPA depreciation/amortisation and companies not allocated to brands. Equity-accounted Chinese JVs are not in revenue or operating result (their share of operating result: 2,621 / 1,742 / 958, reported in the financial result). Battery = Group battery business field (cell manufacturing; brand not named in the table). Porsche AG (P911.DE) and TRATON SE (8TRA.DE) are separately listed subsidiaries. 'Other' for FY2024/FY2025 is the published figure; segments + other differ from the published total by 1 (VW rounding) in some years."
+}

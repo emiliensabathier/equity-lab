@@ -1,0 +1,169 @@
+{
+ "ticker": "DIS",
+ "name": "Walt Disney",
+ "currency": "USD",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-09-30",
+  "2024-09-28",
+  "2025-09-27"
+ ],
+ "profit_label": "Segment operating income",
+ "segment_basis": "reportable segments (3)",
+ "sources": [
+  {
+   "title": "The Walt Disney Company Form 10-K for fiscal year ended September 27, 2025 (Segment information note)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1744489/000174448925000155/dis-20250927.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   88898,
+   91361,
+   94425
+  ],
+  "operating_profit": [
+   12863,
+   15601,
+   17551
+  ]
+ },
+ "branches": [
+  {
+   "name": "Entertainment",
+   "revenue": [
+    40635,
+    41186,
+    42466
+   ],
+   "operating_profit": [
+    1444,
+    3923,
+    4674
+   ],
+   "brands": [
+    "ABC Network",
+    "Disney+",
+    "Hulu",
+    "Disney Channel",
+    "Freeform",
+    "FX",
+    "National Geographic",
+    "Walt Disney Pictures",
+    "Pixar",
+    "Marvel",
+    "Lucasfilm",
+    "20th Century Studios"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "NFLX",
+     "name": "Netflix, Inc."
+    },
+    {
+     "ticker": "WBD",
+     "name": "Warner Bros. Discovery, Inc. - "
+    },
+    {
+     "ticker": "PSKY",
+     "name": "Paramount Skydance Corporation"
+    },
+    {
+     "ticker": "CMCSA",
+     "name": "Comcast Corporation"
+    }
+   ]
+  },
+  {
+   "name": "Sports",
+   "revenue": [
+    17111,
+    17619,
+    17672
+   ],
+   "operating_profit": [
+    2465,
+    2406,
+    2882
+   ],
+   "brands": [
+    "ESPN",
+    "ESPN on ABC",
+    "ESPN DTC (ESPN Select / ESPN Unlimited, ex-ESPN+)",
+    "SEC Network",
+    "ACC Network"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "FOXA",
+     "name": "Fox Corporation"
+    },
+    {
+     "ticker": "TKO",
+     "name": "TKO Group Holdings, Inc."
+    }
+   ]
+  },
+  {
+   "name": "Experiences",
+   "revenue": [
+    32549,
+    34151,
+    36156
+   ],
+   "operating_profit": [
+    8954,
+    9272,
+    9995
+   ],
+   "brands": [
+    "Walt Disney World Resort",
+    "Disneyland Resort",
+    "Disneyland Paris",
+    "Hong Kong Disneyland Resort",
+    "Shanghai Disney Resort",
+    "Disney Cruise Line",
+    "Disney Vacation Club",
+    "Aulani",
+    "Adventures by Disney",
+    "National Geographic Expeditions",
+    "Disney Consumer Products"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "FUN",
+     "name": "Six Flags Entertainment Corpora"
+    },
+    {
+     "ticker": "RCL",
+     "name": "Royal Caribbean Cruises Ltd."
+    },
+    {
+     "ticker": "CCL",
+     "name": "Carnival Corporation Ltd."
+    }
+   ]
+  }
+ ],
+ "other": {
+  "name": "Eliminations (intersegment)",
+  "revenue": [
+   -1397,
+   -1595,
+   -1869
+  ],
+  "operating_profit": [
+   0,
+   0,
+   0
+  ]
+ },
+ "notes": "Fiscal years end on the Saturday nearest 30 September (FY2023 = 30 Sep 2023, FY2024 = 28 Sep 2024, FY2025 = 27 Sep 2025). All three years taken from the FY2025 10-K segment note (Entertainment / Sports / Experiences structure, in place since Q4 FY2023; FY2023 figures as presented in that latest 10-K). Segment revenue includes intersegment amounts; 'Other' revenue = intersegment eliminations. Profit total = total segment operating income as presented by Disney (the company does not report a GAAP operating income line); therefore 'Other' profit is 0. Below segment OI, Disney deducts corporate and unallocated shared expenses (-1,147 / -1,435 / -1,646), restructuring and impairment charges (-3,836 / -3,595 / -819), equity loss of the India JV (FY2025 -202), TFCF and Hulu acquisition amortization (-1,998 / -1,677 / -1,576), other income (expense) net and net interest, giving income before taxes of 4,769 / 7,569 / 12,003. Star India was deconsolidated on 14 Nov 2024 (JioStar JV, 37% equity stake) - affects Entertainment and Sports comparability. ESPN is ~80% owned; National Geographic 73%; Hong Kong Disneyland 48% and Shanghai Disney Resort 43% (consolidated)."
+}

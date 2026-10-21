@@ -22,7 +22,8 @@ OWNERS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("HM-B.ST", "H&M", ("H&M", "Hennes & Mauritz", "COS", "Arket", "Weekday", "Monki")),
     ("MC.PA", "LVMH", (
         "Louis Vuitton", "Dior", "Moët & Chandon", "Moët", "Hennessy", "Sephora", "Fendi",
-        "Celine", "Givenchy", "Bulgari", "Tiffany", "TAG Heuer", "Hublot", "Loewe", "Kenzo",
+        "Celine", "Givenchy", "Bulgari", "Bvlgari", "Tiffany", "TAG Heuer", "Hublot", "Loewe",
+        "Kenzo",
         "Dom Pérignon", "Veuve Clicquot", "Guerlain", "Rimowa", "Berluti", "Loro Piana",
         "Marc Jacobs", "Ruinart", "Krug",
     )),

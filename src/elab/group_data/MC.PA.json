@@ -1,0 +1,275 @@
+{
+ "ticker": "MC.PA",
+ "name": "LVMH",
+ "currency": "EUR",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Profit from recurring operations",
+ "segment_basis": "business groups",
+ "sources": [
+  {
+   "title": "LVMH 2025 annual results press release (27 Jan 2026)",
+   "url": "https://www.lvmh.com/en/publications/solid-performance-in-a-disrupted-global-economic-and-geopolitical-environment"
+  },
+  {
+   "title": "LVMH Financial Documents - December 31, 2025 (note 24 Segment information)",
+   "url": "https://lvmh-com.cdn.prismic.io/lvmh-com/aXjqHgIvOtkhB_8I_Financialdocuments-December31%2C2025.pdf"
+  },
+  {
+   "title": "LVMH 2025 Universal Registration Document (financial highlights p.2, business overview pp.10-23)",
+   "url": "https://lvmh-com.cdn.prismic.io/lvmh-com/aczo-pGXnQHGZKQ5_UniversalRegistrationDocument2025.pdf"
+  },
+  {
+   "title": "LVMH 2024 annual results press release (28 Jan 2025)",
+   "url": "https://www.lvmh.com/en/publications/lvmh-achieves-a-solid-performance-despite-an-unfavorable-global-economic-environment"
+  }
+ ],
+ "total": {
+  "revenue": [
+   86153,
+   84683,
+   80807
+  ],
+  "operating_profit": [
+   22802,
+   19571,
+   17755
+  ]
+ },
+ "branches": [
+  {
+   "name": "Wines & Spirits",
+   "revenue": [
+    6602,
+    5862,
+    5358
+   ],
+   "operating_profit": [
+    2109,
+    1356,
+    1016
+   ],
+   "brands": [
+    "Moët & Chandon",
+    "Dom Pérignon",
+    "Ruinart",
+    "Krug",
+    "Veuve Clicquot",
+    "Hennessy",
+    "Château d'Yquem",
+    "Glenmorangie",
+    "Clos des Lambrays"
+   ],
+   "comparables": [
+    {
+     "ticker": "RI.PA",
+     "name": "Pernod Ricard SA"
+    },
+    {
+     "ticker": "DGE.L",
+     "name": "Diageo plc"
+    },
+    {
+     "ticker": "RCO.PA",
+     "name": "REMY COINTREAU"
+    },
+    {
+     "ticker": "CPR.MI",
+     "name": "Davide Campari-Milano N.V."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Fashion & Leather Goods",
+   "revenue": [
+    42169,
+    41060,
+    37770
+   ],
+   "operating_profit": [
+    16836,
+    15230,
+    13209
+   ],
+   "brands": [
+    "Louis Vuitton",
+    "Christian Dior",
+    "Celine",
+    "Loewe",
+    "Kenzo",
+    "Givenchy",
+    "Fendi",
+    "Emilio Pucci",
+    "Marc Jacobs",
+    "Berluti",
+    "Loro Piana",
+    "Rimowa",
+    "Patou"
+   ],
+   "comparables": [
+    {
+     "ticker": "RMS.PA",
+     "name": "Hermès International Société en commandite par actions"
+    },
+    {
+     "ticker": "KER.PA",
+     "name": "Kering SA"
+    },
+    {
+     "ticker": "MONC.MI",
+     "name": "Moncler S.p.A."
+    },
+    {
+     "ticker": "BRBY.L",
+     "name": "Burberry Group plc"
+    },
+    {
+     "ticker": "BC.MI",
+     "name": "Brunello Cucinelli S.p.A."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Perfumes & Cosmetics",
+   "revenue": [
+    8271,
+    8418,
+    8174
+   ],
+   "operating_profit": [
+    713,
+    671,
+    727
+   ],
+   "brands": [
+    "Parfums Christian Dior",
+    "Guerlain",
+    "Parfums Givenchy",
+    "Kenzo Parfums",
+    "Benefit Cosmetics",
+    "Fresh",
+    "Acqua di Parma",
+    "Loewe Perfumes",
+    "Make Up For Ever",
+    "Maison Francis Kurkdjian",
+    "Fenty Beauty by Rihanna",
+    "Officine Universelle Buly"
+   ],
+   "comparables": [
+    {
+     "ticker": "OR.PA",
+     "name": "L'Oréal S.A."
+    },
+    {
+     "ticker": "EL",
+     "name": "The Estée Lauder Companies Inc."
+    },
+    {
+     "ticker": "PUIG.MC",
+     "name": "Puig Brands, S.A."
+    },
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    },
+    {
+     "ticker": "COTY",
+     "name": "Coty Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Watches & Jewelry",
+   "revenue": [
+    10902,
+    10577,
+    10486
+   ],
+   "operating_profit": [
+    2162,
+    1546,
+    1514
+   ],
+   "brands": [
+    "Tiffany & Co.",
+    "Bvlgari",
+    "Chaumet",
+    "Fred",
+    "TAG Heuer",
+    "Hublot",
+    "Zenith",
+    "Repossi",
+    "L'Epée 1839"
+   ],
+   "comparables": [
+    {
+     "ticker": "CFR.SW",
+     "name": "Compagnie Financière Richemont SA"
+    },
+    {
+     "ticker": "UHR.SW",
+     "name": "SWATCH GROUP I"
+    },
+    {
+     "ticker": "PNDORA.CO",
+     "name": "Pandora A/S"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Selective Retailing",
+   "revenue": [
+    17885,
+    18262,
+    18348
+   ],
+   "operating_profit": [
+    1391,
+    1385,
+    1780
+   ],
+   "brands": [
+    "Sephora",
+    "Le Bon Marché",
+    "DFS"
+   ],
+   "comparables": [
+    {
+     "ticker": "ULTA",
+     "name": "Ulta Beauty, Inc."
+    },
+    {
+     "ticker": "AVOL.SW",
+     "name": "AVOLTA N"
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Other activities and eliminations",
+  "revenue": [
+   324,
+   504,
+   671
+  ],
+  "operating_profit": [
+   -409,
+   -617,
+   -491
+  ]
+ },
+ "notes": "All three years appear together in the 2025 URD financial highlights (p.2) and match the 2024 and 2025 results press releases exactly: no restatement of FY2023/FY2024. 'Other activities and eliminations' combines 'Other and holding companies' (FY2025 revenue 2,109, PRO -477) and 'Eliminations and not allocated' (revenue -1,438, PRO -14) from note 24; other activities include Les Echos group, Royal Van Lent (Feadship), Cheval Blanc and Belmond hotels. Brand lists are those named in the 2025 URD business overview; the Wines & Spirits list there ends with an ellipsis (non-exhaustive). Louis Vuitton is reported in Fashion & Leather Goods; Bvlgari and Tiffany in Watches & Jewelry. Segment revenue includes intra-group sales (eliminated in the other line)."
+}

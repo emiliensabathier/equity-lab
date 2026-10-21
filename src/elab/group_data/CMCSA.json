@@ -1,0 +1,242 @@
+{
+ "ticker": "CMCSA",
+ "name": "Comcast",
+ "currency": "USD",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Adjusted EBITDA",
+ "segment_basis": "reportable segments (5)",
+ "sources": [
+  {
+   "title": "Comcast 2025 Annual Report on Form 10-K (segment note, Note 2)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1166691/000162828026004994/cmcsa-20251231.htm"
+  },
+  {
+   "title": "Comcast 2024 Annual Report on Form 10-K (Adjusted EBITDA reconciliation 2023)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1166691/000116669125000011/cmcsa-20241231.htm"
+  },
+  {
+   "title": "Comcast Trending Schedule as Revised March 16, 2026 (Form 8-K Ex. 99.1)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1166691/000162828026017950/trendingscheduleasrevisedo.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   121572,
+   123731,
+   123707
+  ],
+  "operating_profit": [
+   37633,
+   38069,
+   37384
+  ]
+ },
+ "branches": [
+  {
+   "name": "Residential Connectivity & Platforms",
+   "revenue": [
+    71946,
+    71574,
+    70704
+   ],
+   "operating_profit": [
+    26948,
+    27338,
+    26653
+   ],
+   "brands": [
+    "Xfinity",
+    "Xfinity Mobile",
+    "Sky",
+    "NOW",
+    "Sky Q",
+    "Sky Stream",
+    "Sky Glass",
+    "X1",
+    "Sky-branded entertainment networks (UK, Italy)"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "CHTR",
+     "name": "Charter Communications, Inc."
+    },
+    {
+     "ticker": "VZ",
+     "name": "Verizon Communications Inc."
+    },
+    {
+     "ticker": "T",
+     "name": "AT&T Inc."
+    }
+   ]
+  },
+  {
+   "name": "Business Services Connectivity",
+   "revenue": [
+    9255,
+    9701,
+    10237
+   ],
+   "operating_profit": [
+    5291,
+    5500,
+    5725
+   ],
+   "brands": [
+    "Comcast Business",
+    "Sky Business"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "CHTR",
+     "name": "Charter Communications, Inc."
+    },
+    {
+     "ticker": "VZ",
+     "name": "Verizon Communications Inc."
+    },
+    {
+     "ticker": "T",
+     "name": "AT&T Inc."
+    }
+   ]
+  },
+  {
+   "name": "Media",
+   "revenue": [
+    25355,
+    28148,
+    27090
+   ],
+   "operating_profit": [
+    2955,
+    3130,
+    3196
+   ],
+   "brands": [
+    "NBC",
+    "Telemundo",
+    "Peacock",
+    "Sky Sports",
+    "Bravo",
+    "USA Network",
+    "CNBC",
+    "MS NOW (ex-MSNBC)",
+    "E!",
+    "Syfy",
+    "Oxygen",
+    "Golf Channel"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "FOXA",
+     "name": "Fox Corporation"
+    },
+    {
+     "ticker": "WBD",
+     "name": "Warner Bros. Discovery, Inc. - "
+    },
+    {
+     "ticker": "PSKY",
+     "name": "Paramount Skydance Corporation"
+    }
+   ]
+  },
+  {
+   "name": "Studios",
+   "revenue": [
+    11625,
+    11092,
+    11286
+   ],
+   "operating_profit": [
+    1269,
+    1404,
+    1099
+   ],
+   "brands": [
+    "Universal Pictures",
+    "Illumination",
+    "DreamWorks Animation",
+    "Focus Features",
+    "Working Title",
+    "Universal Television",
+    "Universal Content Productions",
+    "Universal International Studios",
+    "Sky Studios"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "WBD",
+     "name": "Warner Bros. Discovery, Inc. - "
+    },
+    {
+     "ticker": "DIS",
+     "name": "The Walt Disney Company"
+    },
+    {
+     "ticker": "LION",
+     "name": "Lionsgate Studios Corp"
+    }
+   ]
+  },
+  {
+   "name": "Theme Parks",
+   "revenue": [
+    8947,
+    8617,
+    9836
+   ],
+   "operating_profit": [
+    3345,
+    2949,
+    3080
+   ],
+   "brands": [
+    "Universal Orlando Resort",
+    "Epic Universe",
+    "Universal Studios Hollywood",
+    "Universal Studios Japan",
+    "Universal Beijing Resort"
+   ],
+   "listed": [],
+   "comparables": [
+    {
+     "ticker": "DIS",
+     "name": "The Walt Disney Company"
+    },
+    {
+     "ticker": "FUN",
+     "name": "Six Flags Entertainment Corpora"
+    }
+   ]
+  }
+ ],
+ "other": {
+  "name": "Headquarters, Corporate & Other, eliminations and adjustments",
+  "revenue": [
+   -5556,
+   -5401,
+   -5446
+  ],
+  "operating_profit": [
+   -2175,
+   -2252,
+   -2369
+  ]
+ },
+ "notes": "Segment revenue includes intersegment revenue (as in the 10-K segment table); 'Other' = Other revenue (Sky Germany, Comcast Spectacor, Xumo, Corporate) + eliminations for revenue, and for Adjusted EBITDA = Media/Studios/Theme Parks headquarters & other + Corporate & other + eliminations + the adjustments excluded from consolidated Adjusted EBITDA (Versant separation costs: $483M in 2025, $7M in 2024). Total = consolidated Adjusted EBITDA (non-GAAP) per the 10-K reconciliations (2025/2024 from FY2025 10-K, 2023 from FY2024 10-K). All three years taken from the FY2025 10-K segment presentation (5 segments, adopted in 2024; 2023 recast). Small 1M rounding differences between the segment sum and the 10-K 'Total' line (e.g. 2024 Adj. EBITDA 40,321 vs 40,322) are absorbed in 'Other'. Versant (MS NOW, CNBC, USA Network, Golf Channel, E!, Syfy, Oxygen...) was spun off on 2 Jan 2026 (Nasdaq: VSNT) and is still included in Media for these years. On 16 Mar 2026 Comcast published a revised, pro forma (ex-Versant) trending schedule with a new segment composition for 2024-2025 (e.g. pro forma Media Adj. EBITDA 2025 = 164, total pro forma Adj. EBITDA 34,506); not used here because it is non-GAAP pro forma and covers only 2024-2025."
+}

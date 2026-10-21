@@ -1,0 +1,220 @@
+{
+ "ticker": "OR.PA",
+ "name": "L'Oréal",
+ "currency": "EUR",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Divisional operating profit",
+ "segment_basis": "divisions",
+ "sources": [
+  {
+   "title": "L'Oréal 2025 Annual Results news release (12 Feb 2026)",
+   "url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/press-releases/finance/2026/prfy25en.pdf?rev=-1"
+  },
+  {
+   "title": "L'Oréal 2024 Annual Results news release (6 Feb 2025)",
+   "url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/7-local-country-folder/italy/press-release/finance/loreal-2024-annual-results/pr2024fullyearen0.pdf"
+  },
+  {
+   "title": "L'Oréal 2023 Annual Results news release (8 Feb 2024)",
+   "url": "https://ml-eu.globenewswire.com/Resource/Download/499487ac-ef68-4bd9-8956-c59bdb0a76af"
+  }
+ ],
+ "total": {
+  "revenue": [
+   41182.5,
+   43486.8,
+   44052.0
+  ],
+  "operating_profit": [
+   8143.3,
+   8687.5,
+   8891.9
+  ]
+ },
+ "branches": [
+  {
+   "name": "Professional Products",
+   "revenue": [
+    4653.9,
+    4886.2,
+    5163.0
+   ],
+   "operating_profit": [
+    1005.3,
+    1086.2,
+    1180.3
+   ],
+   "brands": [
+    "Kérastase",
+    "L'Oréal Professionnel",
+    "Redken",
+    "Matrix",
+    "Color Wow"
+   ],
+   "comparables": [
+    {
+     "ticker": "HEN3.DE",
+     "name": "Henkel AG & Co. KGaA"
+    },
+    {
+     "ticker": "EL",
+     "name": "The Estée Lauder Companies Inc."
+    },
+    {
+     "ticker": "COTY",
+     "name": "Coty Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Consumer Products",
+   "revenue": [
+    15172.7,
+    15982.4,
+    16089.7
+   ],
+   "operating_profit": [
+    3114.7,
+    3376.4,
+    3443.3
+   ],
+   "brands": [
+    "L'Oréal Paris",
+    "Maybelline New York",
+    "Garnier",
+    "NYX Professional Makeup",
+    "Mixa",
+    "3CE",
+    "Dr.G"
+   ],
+   "comparables": [
+    {
+     "ticker": "ULVR.L",
+     "name": "Unilever PLC"
+    },
+    {
+     "ticker": "PG",
+     "name": "The Procter & Gamble Company"
+    },
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    },
+    {
+     "ticker": "CL",
+     "name": "Colgate-Palmolive Company"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "L'Oréal Luxe",
+   "revenue": [
+    14924.0,
+    15591.1,
+    15595.1
+   ],
+   "operating_profit": [
+    3331.8,
+    3469.7,
+    3488.1
+   ],
+   "brands": [
+    "Lancôme",
+    "Yves Saint Laurent",
+    "Armani",
+    "Prada",
+    "Valentino",
+    "Miu Miu",
+    "Azzaro",
+    "Ralph Lauren",
+    "Aesop",
+    "Maison Margiela",
+    "Kiehl's",
+    "Medik8"
+   ],
+   "comparables": [
+    {
+     "ticker": "EL",
+     "name": "The Estée Lauder Companies Inc."
+    },
+    {
+     "ticker": "PUIG.MC",
+     "name": "Puig Brands, S.A."
+    },
+    {
+     "ticker": "COTY",
+     "name": "Coty Inc."
+    },
+    {
+     "ticker": "MC.PA",
+     "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Dermatological Beauty",
+   "revenue": [
+    6432.0,
+    7027.1,
+    7204.1
+   ],
+   "operating_profit": [
+    1670.9,
+    1832.7,
+    1882.1
+   ],
+   "brands": [
+    "La Roche-Posay",
+    "CeraVe",
+    "Vichy",
+    "SkinCeuticals",
+    "Skinbetter Science"
+   ],
+   "comparables": [
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    },
+    {
+     "ticker": "GALD.SW",
+     "name": "Galderma Group AG"
+    },
+    {
+     "ticker": "KVUE",
+     "name": "Kenvue Inc."
+    },
+    {
+     "ticker": "HLN.L",
+     "name": "Haleon plc"
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Non-allocated (central group expenses, fundamental research, free share grants, misc.)",
+  "revenue": [
+   -0.1,
+   0.0,
+   0.1
+  ],
+  "operating_profit": [
+   -979.4,
+   -1077.5,
+   -1101.8
+  ]
+ },
+ "notes": "Figures as published in each year's annual results release; FY2023 and FY2024 divisional figures are shown unchanged as comparatives in the following year's release (no restatement). Dermatological Beauty was formerly named Active Cosmetics (renamed in 2023). Sales are not allocated outside divisions: the 'other' revenue values (-0.1/0.0/+0.1) are only rounding differences between the published division sales and the group total. 2025: divisions total 9,993.8 - 1,101.8 = 8,892.0 vs published group 8,891.9 (rounding in the source). The FY2024 release text says 'Non-allocated expenses amounted to 1,007.5 million euros' but its table and the FY2025 release both show -1,077.5, which is used. Brands are those named by L'Oréal in the division commentaries of the FY2024/FY2025 releases (not the full portfolio)."
+}

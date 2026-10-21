@@ -1,0 +1,246 @@
+{
+ "ticker": "PG",
+ "name": "Procter & Gamble",
+ "currency": "USD",
+ "years": [
+  "FY2024",
+  "FY2025",
+  "FY2026"
+ ],
+ "year_ends": [
+  "2024-06-30",
+  "2025-06-30",
+  "2026-06-30"
+ ],
+ "profit_label": "Earnings before income taxes (segment)",
+ "segment_basis": "reportable segments",
+ "sources": [
+  {
+   "title": "P&G Form 10-K for fiscal year ended June 30, 2026 (SEC EDGAR), Note 2 Segment Information and Item 1 brand table",
+   "url": "https://www.sec.gov/Archives/edgar/data/0000080424/000008042426000103/pg-20260630.htm"
+  },
+  {
+   "title": "P&G 2026 Form 10-K (PDF, investor site)",
+   "url": "https://s204.q4cdn.com/332108499/files/doc_financials/2026/ar/2026_form_10k.pdf"
+  }
+ ],
+ "total": {
+  "revenue": [
+   84039,
+   84284,
+   87032
+  ],
+  "operating_profit": [
+   18761,
+   20167,
+   20377
+  ]
+ },
+ "branches": [
+  {
+   "name": "Beauty",
+   "revenue": [
+    15220,
+    14964,
+    16023
+   ],
+   "operating_profit": [
+    3805,
+    3454,
+    3473
+   ],
+   "brands": [
+    "Head & Shoulders",
+    "Herbal Essences",
+    "Pantene",
+    "Rejoice",
+    "Native",
+    "Old Spice",
+    "Safeguard",
+    "Secret",
+    "Olay",
+    "SK-II"
+   ],
+   "comparables": [
+    {
+     "ticker": "OR.PA",
+     "name": "L'Oréal S.A."
+    },
+    {
+     "ticker": "EL",
+     "name": "The Estée Lauder Companies Inc."
+    },
+    {
+     "ticker": "ULVR.L",
+     "name": "Unilever PLC"
+    },
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Grooming",
+   "revenue": [
+    6654,
+    6662,
+    6918
+   ],
+   "operating_profit": [
+    1845,
+    1952,
+    1966
+   ],
+   "brands": [
+    "Braun",
+    "Gillette",
+    "Venus"
+   ],
+   "comparables": [
+    {
+     "ticker": "EPC",
+     "name": "Edgewell Personal Care Company"
+    },
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Health Care",
+   "revenue": [
+    11793,
+    11998,
+    12456
+   ],
+   "operating_profit": [
+    2941,
+    3149,
+    3163
+   ],
+   "brands": [
+    "Crest",
+    "Oral-B",
+    "Metamucil",
+    "Neurobion",
+    "Pepto-Bismol",
+    "Vicks"
+   ],
+   "comparables": [
+    {
+     "ticker": "HLN.L",
+     "name": "Haleon plc"
+    },
+    {
+     "ticker": "KVUE",
+     "name": "Kenvue Inc."
+    },
+    {
+     "ticker": "CL",
+     "name": "Colgate-Palmolive Company"
+    },
+    {
+     "ticker": "RKT.L",
+     "name": "Reckitt Benckiser Group plc"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Fabric & Home Care",
+   "revenue": [
+    29495,
+    29617,
+    30314
+   ],
+   "operating_profit": [
+    7339,
+    7459,
+    7290
+   ],
+   "brands": [
+    "Ariel",
+    "Downy",
+    "Gain",
+    "Tide",
+    "Cascade",
+    "Dawn",
+    "Fairy",
+    "Febreze",
+    "Mr. Clean",
+    "Swiffer"
+   ],
+   "comparables": [
+    {
+     "ticker": "CLX",
+     "name": "The Clorox Company"
+    },
+    {
+     "ticker": "CHD",
+     "name": "Church & Dwight Co., Inc."
+    },
+    {
+     "ticker": "HEN3.DE",
+     "name": "Henkel AG & Co. KGaA"
+    },
+    {
+     "ticker": "RKT.L",
+     "name": "Reckitt Benckiser Group plc"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Baby, Feminine & Family Care",
+   "revenue": [
+    20277,
+    20248,
+    20401
+   ],
+   "operating_profit": [
+    5253,
+    5214,
+    5145
+   ],
+   "brands": [
+    "Pampers",
+    "Luvs",
+    "Always",
+    "Always Discreet",
+    "Tampax",
+    "Bounty",
+    "Charmin",
+    "Puffs"
+   ],
+   "comparables": [
+    {
+     "ticker": "KMB",
+     "name": "Kimberly-Clark Corporation"
+    },
+    {
+     "ticker": "ESSITY-B.ST",
+     "name": "Essity AB (publ)"
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Corporate",
+  "revenue": [
+   601,
+   794,
+   919
+  ],
+  "operating_profit": [
+   -2422,
+   -1061,
+   -660
+  ]
+ },
+ "notes": "Segment net sales sum to the published total within +/-1 (rounding in the source). All three years taken from the segment tables of the FY2026 10-K (Note 2), i.e. as presented in the latest filing. Profit measure is segment earnings before income taxes (segment net earnings are also published: FY2026 total 16,144). Corporate includes incidental businesses, unallocated items and reconciliation to US GAAP: FY2024 includes the $1.3bn non-cash Gillette intangible impairment; FY2025 includes a $752m non-cash charge for accumulated FX translation losses on the substantial liquidation of operations in Argentina; FY2026 includes a $343m gain on the dissolution of the Glad joint venture. Brands are the 'Major Brands' listed by P&G for each segment in Item 1 of the 10-K. FY2024 figures were not cross-checked against the original FY2024 10-K."
+}

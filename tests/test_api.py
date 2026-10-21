@@ -76,7 +76,7 @@ def env(tmp_path, monkeypatch):
 def test_analysis_served_from_cache_without_fetch(env):
     env["cache"].set("analysis:ACME", ANALYSIS)
     body = env["client"].get("/api/analysis/acme").json()
-    assert body == {**ANALYSIS, "stale": False}
+    assert body == {**ANALYSIS, "stale": False, "has_group": False}
     assert env["state"]["calls"] == 0
 
 
@@ -116,7 +116,8 @@ def test_expired_copy_is_served_at_once_while_a_refresh_replaces_it(env, monkeyp
 
     res = env["client"].get("/api/analysis/ACME")
 
-    assert res.json() == {**ANALYSIS, "stale": False, "refreshing": True}
+    assert res.json() == {**ANALYSIS, "stale": False, "refreshing": True,
+                          "has_group": False}
     assert env["state"]["calls"] == 0  # nothing computed while the visitor waited
     [job] = env["state"]["queued"]
     job()
@@ -138,7 +139,8 @@ def test_a_failed_refresh_keeps_the_old_copy_and_can_be_retried(env, monkeypatch
     env["state"]["behavior"] = lambda t: (_ for _ in ()).throw(RuntimeError("secret boom"))
     res = env["client"].get("/api/analysis/ACME")
     assert res.status_code == 200
-    assert res.json() == {**ANALYSIS, "stale": False, "refreshing": True}
+    assert res.json() == {**ANALYSIS, "stale": False, "refreshing": True,
+                          "has_group": False}
     assert "secret boom" not in res.text
     assert env["cache"].get("analysis:ACME", None)[0] == ANALYSIS
     env["client"].get("/api/analysis/ACME")
@@ -235,12 +237,58 @@ def test_narrative_polling_pending_job_is_not_counted_but_new_jobs_are(env):
 
 def test_search_returns_matches(env):
     res = env["client"].get("/api/search", params={"q": "acme"})
-    assert res.json() == [{"ticker": "ACME", "name": "Acme Inc", "exchange": "NMS", "brand": ""}]
+    assert res.json() == [{"ticker": "ACME", "name": "Acme Inc", "exchange": "NMS", "brand": "",
+                          "branch": ""}]
 
 
 def test_search_names_the_company_that_owns_a_brand(env):
     res = env["client"].get("/api/search", params={"q": "Zara"})
-    assert res.json()[0] == {"ticker": "ITX.MC", "name": "Inditex", "exchange": "", "brand": "Zara"}
+    # The shipped Inditex breakdown puts Zara in its first segment.
+    assert res.json()[0] == {"ticker": "ITX.MC", "name": "Inditex", "exchange": "", "brand": "Zara",
+                             "branch": "zara-zara-home-lefties"}
+
+
+GROUP = {
+    "ticker": "ITX.MC", "name": "Inditex", "currency": "EUR",
+    "years": ["FY2024", "FY2025"], "year_ends": ["2025-01-31", "2026-01-31"],
+    "profit_label": "EBIT", "sources": [{"title": "AR", "url": "https://example.com"}],
+    "total": {"revenue": [10, 12], "operating_profit": [2, 3]},
+    "branches": [
+        {"name": "Zara", "revenue": [7, 8], "operating_profit": [1.5, 2], "brands": ["Zara Home"]},
+        {"name": "Bershka", "revenue": [3, 4], "operating_profit": [0.5, 1], "brands": []},
+    ],
+}
+
+
+@pytest.fixture
+def group_client(tmp_path):
+    from elab.groups import validate
+
+    static = tmp_path / "static"
+    static.mkdir()
+    (static / "index.html").write_text("<h1>equity-lab</h1>")
+    app = create_app(
+        fetchers=Fetchers(statements=None, prices=None, info=None), cache=Cache(tmp_path / "c.db"),
+        worker=StubWorker(), searcher=lambda q: [], cache_dir=tmp_path, static_dir=static,
+        groups={"ITX.MC": validate(GROUP)},
+    )
+    return TestClient(app)
+
+
+def test_search_links_a_brand_to_its_branch(group_client):
+    assert group_client.get("/api/search", params={"q": "zara"}).json()[0]["branch"] == "zara"
+    assert group_client.get("/api/search", params={"q": "zara home"}).json()[0]["branch"] == "zara"
+
+
+def test_group_endpoint_serves_branches(group_client):
+    body = group_client.get("/api/group/itx.mc").json()
+    assert [b["id"] for b in body["branches"]] == ["zara", "bershka"]
+    assert body["branches"][0]["comparables"] == []
+
+
+def test_group_endpoint_is_404_for_a_company_without_breakdown(group_client):
+    assert group_client.get("/api/group/AAPL").status_code == 404
+    assert group_client.get("/api/group/bad$").status_code == 422
 
 
 def test_search_results_are_cached_for_ten_minutes_by_normalized_query(env):
@@ -331,7 +379,7 @@ def test_cold_limit_exceeded_serves_stale_copy_instead_of_429(env, monkeypatch):
     monkeypatch.setattr(api_mod.config, "ANALYSIS_TTL", timedelta(0))
     res = env["client"].get("/api/analysis/OLD")
     assert res.status_code == 200
-    assert res.json() == {**ANALYSIS, "stale": True}
+    assert res.json() == {**ANALYSIS, "stale": True, "has_group": False}
 
 
 def test_trailing_newline_ticker_is_422(env):
@@ -399,3 +447,9 @@ def test_search_cache_drops_the_oldest_entry_past_its_size():
 
 def test_index_answers_head_requests(env):
     assert env["client"].head("/").status_code == 200
+
+
+def test_analysis_says_whether_the_company_has_branches(group_client, monkeypatch):
+    monkeypatch.setattr(api_mod, "analyze", lambda t, **kw: {"ticker": t, "as_of": "2026-10-21"})
+    assert group_client.get("/api/analysis/ITX.MC").json()["has_group"] is True
+    assert group_client.get("/api/analysis/AAPL").json()["has_group"] is False

@@ -108,8 +108,11 @@ def test_build_peers_command_smoke(tmp_path, monkeypatch):
         return pd.DataFrame({"ticker": tickers, "name": tickers})
 
     monkeypatch.setattr(peers, "build_peer_table", fake_build)
+    from elab import groups
+
+    monkeypatch.setattr(groups, "comparable_tickers", lambda: ["BBB", "CCC"])
     assert cli.main(["build-peers", "--data-dir", str(tmp_path)]) == 0
-    assert seen["tickers"] == ["AAA", "BBB"]
+    assert seen["tickers"] == ["AAA", "BBB", "CCC"]  # branch comparables join, once each
     assert (tmp_path / config.PEER_TABLE_FILE).is_file()
 
 

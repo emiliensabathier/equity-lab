@@ -191,6 +191,40 @@ tr.company th, tr.company td { color: var(--pen); font-weight: 600; }
 .chart-box { position: relative; height: 190px; min-width: 0; }
 .chart-title { font-size: .88rem; font-weight: 600; margin: 0 0 8px; }
 
+/* ---------- group branches ---------- */
+.branch-link {
+  padding: 0; border: 0; background: none; cursor: pointer; text-align: left;
+  font: inherit; font-weight: 600; color: var(--pen);
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.branch-link:hover { text-decoration-thickness: 2px; }
+.branch-link[aria-pressed=true] { color: var(--hl-ink); background: var(--hl); text-decoration: none; padding: 0 .2em; }
+.share { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.share-bar { display: inline-block; height: 8px; max-width: 64px; background: var(--pen); border-radius: 1px; }
+.share-bar { flex: none; }
+tr.muted-row th, tr.muted-row td { color: var(--muted); }
+tr.total-row th, tr.total-row td { font-weight: 600; border-top: 1.5px solid var(--ink); border-bottom: 0; }
+.branch-panel { margin: 28px 0 8px; padding: 22px 0 0; border-top: 2px solid var(--pen); }
+.branch-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.branch-head h3 { margin: 0; font: 400 1.6rem var(--serif); font-variation-settings: "opsz" 36; }
+.branch-close {
+  min-height: 36px; padding: 4px 12px; border: 1px solid var(--rule); border-radius: 3px;
+  background: transparent; color: var(--ink); font: inherit; font-size: .85rem; cursor: pointer;
+}
+.branch-close:hover { border-color: var(--ink); }
+.branch-panel .sentence { max-width: 64ch; font: 400 1.1rem/1.6 var(--serif); margin: 12px 0 20px; }
+.branch-panel .kpis { margin: 0 0 24px; padding-top: 0; border-top: 0; }
+.branch-panel .charts { margin-bottom: 20px; }
+.branch-panel h4 { margin: 26px 0 10px; font-size: .95rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 3px; font-size: .9rem; }
+a.chip.listed { border-color: var(--pen); text-decoration: none; font-weight: 600; }
+a.chip.listed span { font-size: .75rem; font-weight: 400; color: var(--muted); }
+a.chip.listed:hover { background: var(--pen-wash); }
+.group-table thead th { white-space: normal; min-width: 7ch; }
+.comp-name { display: inline-block; max-width: 26ch; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.source { font-size: .82rem; color: var(--muted); margin: 18px 0 0; max-width: 80ch; }
+
 /* ---------- narrative + limits ---------- */
 .narrative p { margin: 0 0 16px; max-width: 64ch; font: 400 1.14rem/1.7 var(--serif); font-variation-settings: "opsz" 18; }
 .narrative p:last-child { margin-bottom: 0; }

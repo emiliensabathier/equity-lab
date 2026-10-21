@@ -15,7 +15,7 @@ import time
 from collections import defaultdict, deque
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import timedelta
 from pathlib import Path
 
@@ -27,6 +27,7 @@ from elab import config
 from elab.brands import brand_matches
 from elab.cache import Cache
 from elab.engine import Fetchers, analyze
+from elab.groups import find_branch, group_view, load_groups, peer_table_reader
 from elab.narrative import NarrativeWorker
 from elab.resolve import MAX_QUERY, MIN_QUERY, UnknownTicker, search
 
@@ -127,8 +128,11 @@ def create_app(
     static_dir: Path,
     clock: Callable[[], float] = time.monotonic,
     background: Callable[[Callable[[], None]], object] | None = None,
+    groups: dict[str, dict] | None = None,
 ) -> FastAPI:
     app = FastAPI(title="equity-lab", docs_url=None, redoc_url=None)
+    groups = load_groups() if groups is None else groups
+    read_peer_table = peer_table_reader(cache_dir, config.PEER_TABLE_FILE)
     cold_limiter = SlidingWindowLimiter(config.COLD_ANALYSES_PER_HOUR, config.RATE_WINDOW, clock)
     narrative_limiter = SlidingWindowLimiter(
         config.NARRATIVE_JOBS_PER_HOUR, config.RATE_WINDOW, clock
@@ -192,16 +196,36 @@ def create_app(
         if cached is not None:
             return cached
         try:
-            found = [asdict(m) for m in search(q, searcher, local_names, brand_matches)]
+            found = [
+                asdict(replace(m, branch=find_branch(groups, m.ticker, m.brand)))
+                if m.brand else asdict(m)
+                for m in search(q, searcher, local_names, brand_matches)
+            ]
         except Exception:
             log.exception("search failed")
             raise HTTPException(503, "Search is unavailable, try again in a minute.") from None
         search_cache.set(key, found)
         return found
 
+    @app.get("/api/group/{ticker}")
+    def api_group(ticker: str) -> dict:
+        group = groups.get(normalize_ticker(ticker))
+        if group is None:
+            raise HTTPException(404, "No branch breakdown for this company.")
+        try:
+            table = read_peer_table()
+        except Exception:
+            log.exception("peer table unreadable; comparables shown without multiples")
+            table = None
+        return group_view(group, table)
+
     @app.get("/api/analysis/{ticker}")
     def api_analysis(ticker: str, request: Request) -> dict:
         ticker = normalize(ticker)
+        # Told on every answer, so the page asks for branches only when there are some.
+        return {**analysis_for(ticker, request), "has_group": ticker in groups}
+
+    def analysis_for(ticker: str, request: Request) -> dict:
         key = f"analysis:{ticker}"
         fresh = cache.get(key, config.ANALYSIS_TTL)
         if fresh is not None:

@@ -1,0 +1,155 @@
+{
+ "ticker": "HEN3.DE",
+ "name": "Henkel",
+ "currency": "EUR",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Adjusted EBIT",
+ "segment_basis": "business units",
+ "sources": [
+  {
+   "title": "Henkel press release 'Henkel delivers organic growth in 2025 and increases profitability...' (11 Mar 2026, via EQS News)",
+   "url": "https://www.eqs-news.com/news/corporate/henkel-delivers-organic-growth-in-2025-and-increases-profitability-through-innovation-and-more-efficiency/cd4b257d-0241-4420-8259-79c9083a77f2_en"
+  },
+  {
+   "title": "Henkel press release 'Very good annual results 2024...' (11 Mar 2025, via EQS News)",
+   "url": "https://www.eqs-news.com/news/corporate/very-good-annual-results-2024-demonstrate-successful-implementation-of-purposeful-growth-agenda/0a15a984-c3c1-4331-b64f-686fc547cd1f"
+  },
+  {
+   "title": "Henkel press release 'Henkel delivers very strong organic sales growth and significant earnings improvement in 2023' (4 Mar 2024, via EQS News)",
+   "url": "https://www.eqs-news.com/news/corporate/henkel-delivers-very-strong-organic-sales-growth-and-significant-earnings-improvement-in-2023/29d944f1-a512-4831-bed7-47c98d220f01"
+  },
+  {
+   "title": "Henkel Annual Report 2024 (copy of the official PDF; segment report by business unit p. 217, brand mentions)",
+   "url": "https://canaldis-prod.ams3.cdn.digitaloceanspaces.com/posts/60f9a4bc-12ff-41dc-b1f3-0f9016acc3c2/attachedDocument/2024-annual-report.pdf"
+  },
+  {
+   "title": "Henkel 2025 results press release (henkel.com, not fetchable from this server: bot protection)",
+   "url": "https://www.henkel.com/press-and-media/press-releases-and-kits/2026-03-11-henkel-delivers-organic-growth-in-2025-and-increases-profitability-through-innovation-and-more-efficiency-2131952"
+  }
+ ],
+ "total": {
+  "revenue": [
+   21514,
+   21586,
+   20495
+  ],
+  "operating_profit": [
+   2556,
+   3089,
+   3026
+  ]
+ },
+ "branches": [
+  {
+   "name": "Adhesive Technologies",
+   "revenue": [
+    10790,
+    10970,
+    10667
+   ],
+   "operating_profit": [
+    1584,
+    1817,
+    1779
+   ],
+   "brands": [
+    "Loctite",
+    "Technomelt",
+    "Bonderite",
+    "Teroson",
+    "Aquence",
+    "Pritt",
+    "Ceresit",
+    "Pattex"
+   ],
+   "comparables": [
+    {
+     "ticker": "SIKA.SW",
+     "name": "Sika AG"
+    },
+    {
+     "ticker": "FUL",
+     "name": "H. B. Fuller Company"
+    },
+    {
+     "ticker": "MMM",
+     "name": "3M Company"
+    },
+    {
+     "ticker": "AKE.PA",
+     "name": "ARKEMA"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Consumer Brands",
+   "revenue": [
+    10565,
+    10467,
+    9677
+   ],
+   "operating_profit": [
+    1115,
+    1419,
+    1400
+   ],
+   "brands": [
+    "Persil",
+    "Schwarzkopf",
+    "Perwoll",
+    "Somat",
+    "Pril",
+    "Spee",
+    "Gliss",
+    "Dial",
+    "got2b",
+    "Taft",
+    "Kenra",
+    "Joico"
+   ],
+   "comparables": [
+    {
+     "ticker": "ULVR.L",
+     "name": "Unilever PLC"
+    },
+    {
+     "ticker": "PG",
+     "name": "The Procter & Gamble Company"
+    },
+    {
+     "ticker": "RKT.L",
+     "name": "Reckitt Benckiser Group plc"
+    },
+    {
+     "ticker": "CLX",
+     "name": "The Clorox Company"
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Corporate",
+  "revenue": [
+   159,
+   149,
+   151
+  ],
+  "operating_profit": [
+   -144,
+   -147,
+   -153
+  ]
+ },
+ "notes": "FY2023 and FY2024 business-unit and Corporate figures from the segment report of the Henkel Annual Report 2024 (2023 comparatives identical to the FY2023 release; no restatement). FY2025 business-unit sales and adjusted EBIT from Henkel's FY2025 results release; the Henkel 2025 Annual Report itself could not be downloaded (henkel.com bot protection), so FY2025 Corporate (sales 151, adjusted EBIT -153) is DERIVED as group minus the two business units, not read from a published Corporate line. FY2023: 1,584 + 1,115 - 144 = 2,555 vs published group 2,556 (rounding in the source). FY2025 Consumer Brands sales fall partly because the North American Retailer Brands business was divested in April 2025 (no restatement of prior years). Adjusted EBIT excludes one-time items and restructuring; reported EBIT differs (e.g. 2024: 2,831). Brands are those named by Henkel in the 2024 Annual Report (Adhesive Technologies: five industrial brand clusters and four consumer/craftsmen core brands) and releases; 'Not Your Mother's' (agreed March 2026) is not included."
+}

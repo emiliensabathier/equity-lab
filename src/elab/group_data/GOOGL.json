@@ -1,0 +1,160 @@
+{
+ "ticker": "GOOGL",
+ "name": "Alphabet",
+ "currency": "USD",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Operating income",
+ "segment_basis": "reportable segments",
+ "sources": [
+  {
+   "title": "Alphabet 2025 Form 10-K (Note 15, Information about Segments)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000018/goog-20251231.htm"
+  },
+  {
+   "title": "Alphabet 2023 Form 10-K (cross-check of FY2023)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204424000022/goog-20231231.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   307394,
+   350018,
+   402836
+  ],
+  "operating_profit": [
+   84293,
+   112390,
+   129039
+  ]
+ },
+ "branches": [
+  {
+   "name": "Google Services",
+   "revenue": [
+    272543,
+    304930,
+    342721
+   ],
+   "operating_profit": [
+    95858,
+    121263,
+    139404
+   ],
+   "brands": [
+    "Search",
+    "YouTube",
+    "Android",
+    "Chrome",
+    "Google Play",
+    "Google Maps",
+    "Gmail",
+    "Google Drive",
+    "Google Photos",
+    "Google Gemini",
+    "Pixel",
+    "YouTube TV"
+   ],
+   "comparables": [
+    {
+     "ticker": "META",
+     "name": "Meta Platforms, Inc."
+    },
+    {
+     "ticker": "PINS",
+     "name": "Pinterest, Inc."
+    },
+    {
+     "ticker": "SNAP",
+     "name": "Snap Inc."
+    },
+    {
+     "ticker": "TTD",
+     "name": "The Trade Desk, Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Google Cloud",
+   "revenue": [
+    33088,
+    43229,
+    58705
+   ],
+   "operating_profit": [
+    1716,
+    6112,
+    13910
+   ],
+   "brands": [
+    "Google Cloud Platform",
+    "Google Workspace",
+    "Vertex AI",
+    "Gemini Enterprise",
+    "Gemini for Google Workspace",
+    "TPUs"
+   ],
+   "comparables": [
+    {
+     "ticker": "ORCL",
+     "name": "Oracle Corporation"
+    },
+    {
+     "ticker": "AMZN",
+     "name": "Amazon.com, Inc."
+    },
+    {
+     "ticker": "MSFT",
+     "name": "Microsoft Corporation"
+    },
+    {
+     "ticker": "SNOW",
+     "name": "Snowflake Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Other Bets",
+   "revenue": [
+    1527,
+    1648,
+    1537
+   ],
+   "operating_profit": [
+    -4095,
+    -4444,
+    -7515
+   ],
+   "brands": [
+    "Waymo",
+    "X"
+   ],
+   "comparables": [],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Hedging gains (losses) (revenue) and Alphabet-level activities (operating income)",
+  "revenue": [
+   236,
+   211,
+   -127
+  ],
+  "operating_profit": [
+   -9186,
+   -10541,
+   -16760
+  ]
+ },
+ "notes": "Figures from Note 15 of the FY2025 10-K. FY2023 values identical to those originally published in the FY2023 10-K (no restatement). The 'other' revenue line is hedging gains (losses) not allocated to segments; the 'other' operating line is Alphabet-level activities (shared AI R&D incl. Google DeepMind / general AI model development, corporate costs, fines and settlements, severance; hedging gains are also unallocated). Google DeepMind has been reported in Alphabet-level activities since Q2 2023 (prospectively). Brands: the FY2025 10-K names only Waymo and X in Other Bets (Verily and others are not named); Isomorphic Labs is mentioned near the Other Bets paragraph but not explicitly placed in it, so it is excluded. Segment arithmetic checks exactly (0 difference)."
+}

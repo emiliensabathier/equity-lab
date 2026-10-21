@@ -1,0 +1,119 @@
+{
+ "ticker": "META",
+ "name": "Meta Platforms",
+ "currency": "USD",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Income (loss) from operations",
+ "segment_basis": "reportable segments",
+ "sources": [
+  {
+   "title": "Meta Platforms 2025 Form 10-K (Note 15, Segment and Geographical Information)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026003942/meta-20251231.htm"
+  },
+  {
+   "title": "Meta Platforms 2023 Form 10-K (cross-check of FY2023)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1326801/000132680124000012/meta-20231231.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   134902,
+   164501,
+   200966
+  ],
+  "operating_profit": [
+   46751,
+   69380,
+   83276
+  ]
+ },
+ "branches": [
+  {
+   "name": "Family of Apps",
+   "revenue": [
+    133006,
+    162355,
+    198759
+   ],
+   "operating_profit": [
+    62871,
+    87109,
+    102469
+   ],
+   "brands": [
+    "Facebook",
+    "Instagram",
+    "Messenger",
+    "WhatsApp",
+    "Threads",
+    "Meta AI",
+    "Meta Verified"
+   ],
+   "comparables": [
+    {
+     "ticker": "GOOGL",
+     "name": "Alphabet Inc."
+    },
+    {
+     "ticker": "SNAP",
+     "name": "Snap Inc."
+    },
+    {
+     "ticker": "PINS",
+     "name": "Pinterest, Inc."
+    },
+    {
+     "ticker": "RDDT",
+     "name": "Reddit, Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Reality Labs",
+   "revenue": [
+    1896,
+    2146,
+    2207
+   ],
+   "operating_profit": [
+    -16120,
+    -17729,
+    -19193
+   ],
+   "brands": [
+    "Meta Quest",
+    "Meta Horizon Store",
+    "Ray-Ban Meta",
+    "Oakley Meta",
+    "Meta Ray-Ban Display",
+    "Orion (prototype)"
+   ],
+   "comparables": [],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Corporate / unallocated (none)",
+  "revenue": [
+   0,
+   0,
+   0
+  ],
+  "operating_profit": [
+   0,
+   0,
+   0
+  ]
+ },
+ "notes": "All figures from the segment table of the FY2025 10-K (presented newest-first in the filing, reordered oldest-first here); FY2023 identical to the FY2023 10-K (no restatement). Meta has only two segments and no unallocated line, so 'other' is zero. Meta AI is listed among Family of Apps products; it is also available on AI glasses (Reality Labs hardware). Segment arithmetic checks exactly."
+}

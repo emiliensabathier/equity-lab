@@ -1,0 +1,168 @@
+{
+ "ticker": "AMZN",
+ "name": "Amazon",
+ "currency": "USD",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Operating income",
+ "segment_basis": "reportable segments",
+ "sources": [
+  {
+   "title": "Amazon 2025 Form 10-K (Note 10, Segment Information)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000004/amzn-20251231.htm"
+  },
+  {
+   "title": "Amazon 2023 Form 10-K (cross-check of FY2023)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872424000008/amzn-20231231.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   574785,
+   637959,
+   716924
+  ],
+  "operating_profit": [
+   36852,
+   68593,
+   79975
+  ]
+ },
+ "branches": [
+  {
+   "name": "North America",
+   "revenue": [
+    352828,
+    387497,
+    426305
+   ],
+   "operating_profit": [
+    14877,
+    24967,
+    29619
+   ],
+   "brands": [
+    "Online stores",
+    "Physical stores",
+    "Third-party seller services",
+    "Advertising services",
+    "Amazon Prime"
+   ],
+   "comparables": [
+    {
+     "ticker": "WMT",
+     "name": "Walmart Inc."
+    },
+    {
+     "ticker": "COST",
+     "name": "Costco Wholesale Corporation"
+    },
+    {
+     "ticker": "EBAY",
+     "name": "eBay Inc."
+    },
+    {
+     "ticker": "MELI",
+     "name": "MercadoLibre, Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "International",
+   "revenue": [
+    131200,
+    142906,
+    161894
+   ],
+   "operating_profit": [
+    -2656,
+    3792,
+    4750
+   ],
+   "brands": [
+    "Online stores",
+    "Third-party seller services",
+    "Advertising services",
+    "Amazon Prime"
+   ],
+   "comparables": [
+    {
+     "ticker": "ZAL.DE",
+     "name": "Zalando SE"
+    },
+    {
+     "ticker": "BABA",
+     "name": "Alibaba Group Holding Limited"
+    },
+    {
+     "ticker": "MELI",
+     "name": "MercadoLibre, Inc."
+    },
+    {
+     "ticker": "PDD",
+     "name": "PDD Holdings Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "AWS",
+   "revenue": [
+    90757,
+    107556,
+    128725
+   ],
+   "operating_profit": [
+    24631,
+    39834,
+    45606
+   ],
+   "brands": [
+    "Amazon Web Services",
+    "AWS compute",
+    "Storage",
+    "Database",
+    "Analytics",
+    "AI and machine learning services"
+   ],
+   "comparables": [
+    {
+     "ticker": "MSFT",
+     "name": "Microsoft Corporation"
+    },
+    {
+     "ticker": "ORCL",
+     "name": "Oracle Corporation"
+    },
+    {
+     "ticker": "GOOGL",
+     "name": "Alphabet Inc."
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Corporate / unallocated (none: all operating expenses allocated to segments)",
+  "revenue": [
+   0,
+   0,
+   0
+  ],
+  "operating_profit": [
+   0,
+   0,
+   0
+  ]
+ },
+ "notes": "All figures from Note 10 of the FY2025 10-K; FY2023 identical to the FY2023 10-K (no restatement). Amazon allocates all operating expenses to its three segments, so 'other' is zero. The 10-K describes North America and International as retail sales of consumer products (incl. from sellers), advertising and subscription services through online and physical stores (physical stores explicitly mentioned only for North America); AWS as compute, storage, database and other services. Devices (Kindle, Fire TV, Echo, Ring, Blink, eero), Alexa, Prime Video and Twitch are named in the 10-K at company level but not assigned to a specific segment, so they are not listed as segment brands. 2025 operating income includes a $2.5bn FTC settlement (North America) and ~$2.7bn severance (all segments). Segment arithmetic checks exactly."
+}

@@ -1,0 +1,208 @@
+{
+ "ticker": "KER.PA",
+ "name": "Kering",
+ "currency": "EUR",
+ "years": [
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Recurring operating income",
+ "segment_basis": "Houses (IFRS 8 operating segments)",
+ "sources": [
+  {
+   "title": "Kering 2025 Universal Registration Document (Group profile pp.12-14; activity report 4.4-4.5; Note 3 Operating segments p.372)",
+   "url": "https://www.kering.com/api/download-file/?path=02_Universal_Registration_Document_2025_EN_216d1c494b.pdf"
+  }
+ ],
+ "total": {
+  "revenue": [
+   16874,
+   14675
+  ],
+  "operating_profit": [
+   2440,
+   1631
+  ]
+ },
+ "branches": [
+  {
+   "name": "Gucci",
+   "revenue": [
+    7650,
+    5992
+   ],
+   "operating_profit": [
+    1605,
+    966
+   ],
+   "brands": [
+    "Gucci"
+   ],
+   "comparables": [
+    {
+     "ticker": "MC.PA",
+     "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+    },
+    {
+     "ticker": "RMS.PA",
+     "name": "Hermès International Société en commandite par actions"
+    },
+    {
+     "ticker": "MONC.MI",
+     "name": "Moncler S.p.A."
+    },
+    {
+     "ticker": "BRBY.L",
+     "name": "Burberry Group plc"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Yves Saint Laurent",
+   "revenue": [
+    2881,
+    2643
+   ],
+   "operating_profit": [
+    593,
+    529
+   ],
+   "brands": [
+    "Yves Saint Laurent"
+   ],
+   "comparables": [
+    {
+     "ticker": "MC.PA",
+     "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+    },
+    {
+     "ticker": "RMS.PA",
+     "name": "Hermès International Société en commandite par actions"
+    },
+    {
+     "ticker": "MONC.MI",
+     "name": "Moncler S.p.A."
+    },
+    {
+     "ticker": "BRBY.L",
+     "name": "Burberry Group plc"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Bottega Veneta",
+   "revenue": [
+    1713,
+    1706
+   ],
+   "operating_profit": [
+    255,
+    267
+   ],
+   "brands": [
+    "Bottega Veneta"
+   ],
+   "comparables": [
+    {
+     "ticker": "MC.PA",
+     "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+    },
+    {
+     "ticker": "RMS.PA",
+     "name": "Hermès International Société en commandite par actions"
+    },
+    {
+     "ticker": "MONC.MI",
+     "name": "Moncler S.p.A."
+    },
+    {
+     "ticker": "BRBY.L",
+     "name": "Burberry Group plc"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Other Houses",
+   "revenue": [
+    3221,
+    2900
+   ],
+   "operating_profit": [
+    -9,
+    -112
+   ],
+   "brands": [
+    "Balenciaga",
+    "Alexander McQueen",
+    "Brioni",
+    "Boucheron",
+    "Pomellato",
+    "DoDo",
+    "Qeelin"
+   ],
+   "comparables": [
+    {
+     "ticker": "MC.PA",
+     "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+    },
+    {
+     "ticker": "RMS.PA",
+     "name": "Hermès International Société en commandite par actions"
+    },
+    {
+     "ticker": "MONC.MI",
+     "name": "Moncler S.p.A."
+    },
+    {
+     "ticker": "BRBY.L",
+     "name": "Burberry Group plc"
+    },
+    {
+     "ticker": "CFR.SW",
+     "name": "Compagnie Financière Richemont SA"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Kering Eyewear and Corporate",
+   "revenue": [
+    1618,
+    1631
+   ],
+   "operating_profit": [
+    -2,
+    -17
+   ],
+   "brands": [
+    "Kering Eyewear"
+   ],
+   "comparables": [
+    {
+     "ticker": "EL.PA",
+     "name": "EssilorLuxottica Société anonyme"
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Eliminations",
+  "revenue": [
+   -209,
+   -197
+  ],
+  "operating_profit": [
+   -2,
+   -2
+  ]
+ },
+ "notes": "Only two years: Kering Beauté (incl. Creed, sold to L'Oréal, closed 31 March 2026) is reclassified as discontinued operations (IFRS 5) in the 2025 URD and FY2024 is restated to exclude it (it was previously included in the 'Kering Eyewear and Corporate' segment). No FY2023 figures on this restated basis are published (the 2025 URD still shows FY2023 group recurring operating income of 4,746 incl. Beauté), so FY2023 was dropped rather than mixing bases. FY2024 figures here are the restated ones. 'Kering Eyewear and Corporate' is a reported segment: Kering Eyewear revenue 1,592 (2025) / 1,583 (2024), ROI 252 / 277; Corporate and other revenue 39 / 35, ROI -269 / -279. Other Houses brands are those named in the 2025 URD segment commentary (section 4.4); Ginori 1735 appears in the group structure but its segment allocation is not stated, so it is omitted. Kering Eyewear operates a portfolio of 15 brands (own and licensed), not listed by segment. From Q1 2026 Kering reports a new segmentation (Fashion & Leather Goods incl. Gucci separately; Kering Jewelry; Kering Eyewear; Corporate & Other), not used here."
+}

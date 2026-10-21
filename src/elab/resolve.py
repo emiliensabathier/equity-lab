@@ -44,6 +44,7 @@ class Match:
     name: str
     exchange: str
     brand: str = ""  # set when the query named a brand of this company ("Zara" for Inditex)
+    branch: str = ""  # id of the group branch holding that brand, when the group is described
 
 
 @dataclass(frozen=True)

@@ -174,7 +174,7 @@ function choose(i) {
   input.value = m.name;
   dismiss();
   setSearchStatus("");
-  loadAnalysis(m.ticker);
+  loadAnalysis(m.ticker, undefined, m.branch || "");
 }
 
 async function runSearch(q, pickFirst = false) {
@@ -285,7 +285,8 @@ function destroyCharts() {
   charts = [];
 }
 
-async function loadAnalysis(ticker, typed) {
+// `branch` opens that branch of the group once its breakdown arrives ("zara" -> Inditex, Zara).
+async function loadAnalysis(ticker, typed, branch = "") {
   stopNarrative();
   if (loadAbort) loadAbort.abort();
   loadAbort = new AbortController();
@@ -309,6 +310,7 @@ async function loadAnalysis(ticker, typed) {
     history.replaceState(null, "", "?t=" + encodeURIComponent(body.ticker || ticker));
     setStatus("", false);
     render(body);
+    if (body.has_group && body.coverage !== "not_covered") loadGroup(body.ticker || ticker, branch, mine.signal);
     document.title = `${body.name || ticker} | equity-lab`;
   } catch (err) {
     if (err.name === "AbortError") return;
@@ -319,7 +321,7 @@ async function loadAnalysis(ticker, typed) {
 // ---------- rendering ----------
 
 const SECTIONS = [
-  ["verdict", "Verdict"], ["dcf", "Reverse DCF"], ["multiples", "Peers"],
+  ["verdict", "Verdict"], ["group", "Branches"], ["dcf", "Reverse DCF"], ["multiples", "Peers"],
   ["health", "Financial health"], ["narrative", "Written analysis"], ["limits", "Limits"],
 ];
 
@@ -713,6 +715,218 @@ function pollNarrative(ticker) {
   tick();
 }
 
+// ---------- group branches ----------
+
+let panelCharts = [];
+
+function dropPanelCharts() {
+  panelCharts.forEach((c) => c.destroy());
+  charts = charts.filter((c) => !panelCharts.includes(c));
+  panelCharts = [];
+}
+
+// Amounts in group files are in millions of the reporting currency.
+const mn = (v, ccy) => (isNum(v) ? compact(v * 1e6, ccy) : NA);
+const lastOf = (series) => series[series.length - 1];
+
+function signedPct(v) {
+  return isNum(v) ? (v >= 0 ? "+" : "−") + pct(Math.abs(v)) : NA;
+}
+
+async function loadGroup(ticker, branch, signal) {
+  let g;
+  try {
+    const res = await fetch("/api/group/" + encodeURIComponent(ticker), { signal });
+    if (!res.ok) return; // 404: no breakdown for this company, the page stays as it is
+    g = await res.json();
+  } catch (err) {
+    return;
+  }
+  if (signal.aborted || !$("verdict")) return;
+  const node = withId(guarded("Branches", () => groupCard(g)), "group");
+  $("verdict").after(node);
+  renderToc();
+  if (branch && g.branches.some((b) => b.id === branch)) openBranch(g, branch, true);
+}
+
+function shareBar(share) {
+  const bar = el("span", { class: "share-bar", "aria-hidden": "true" });
+  bar.style.width = (isNum(share) ? Math.max(0, Math.min(1, share)) * 100 : 0).toFixed(1) + "%";
+  return el("span", { class: "share" }, bar, el("span", {}, pct(share)));
+}
+
+function groupCard(g) {
+  const year = lastOf(g.years);
+  const ccy = g.currency;
+  const head = ["Branch", `Revenue ${year}`, "Growth", g.profit_label, "Margin", "Share of revenue"];
+  const row = (b, clickable) => {
+    const name = clickable
+      ? el("button", { type: "button", class: "branch-link", "data-branch": b.id }, b.name)
+      : b.name;
+    return [name, mn(lastOf(b.revenue), ccy), signedPct(b.growth),
+      mn(lastOf(b.operating_profit), ccy), pct(lastOf(b.margin)), shareBar(b.revenue_share)];
+  };
+  const rows = g.branches.map((b) => ({ cells: row(b, true), cls: "branch-row" }));
+  const other = g.other;
+  if (other && (other.revenue.some((v) => v !== 0) || other.operating_profit.some((v) => v))) {
+    rows.push({ cells: [other.name, mn(lastOf(other.revenue), ccy), NA,
+      mn(lastOf(other.operating_profit), ccy), NA, NA], cls: "muted-row" });
+  }
+  const t = g.total;
+  rows.push({ cells: [`${g.name} total`, mn(lastOf(t.revenue), ccy), signedPct(t.growth),
+    mn(lastOf(t.operating_profit), ccy), pct(lastOf(t.margin)), "100%"], cls: "total-row" });
+  const tbl = table(`${year}, reporting currency ${ccy}. Pick a branch to open it.`, head, rows);
+  tbl.classList.add("group-table");
+  const panel = el("div", { id: "branch-panel", class: "branch-panel", hidden: "" });
+  const node = card(`${g.name} by ${g.segment_basis}`,
+    el("p", {}, `${g.name} reports ${g.branches.length} ${g.segment_basis}. Each one below opens with its own figures, the companies and brands it holds, and listed companies in the same business.`),
+    tbl, panel,
+    el("p", { class: "source" }, "Source: ", ...g.sources.flatMap((s, i) => [
+      i ? ", " : "", el("a", { href: s.url, rel: "noopener" }, s.title)]),
+    `. Figures as the company reports them, typed in by hand from these documents.`),
+    g.notes ? el("details", { class: "source" }, el("summary", {}, "About these figures"),
+      el("p", {}, g.notes)) : null);
+  node.querySelectorAll("button.branch-link").forEach((btn) => {
+    btn.addEventListener("click", () => openBranch(g, btn.dataset.branch, true));
+  });
+  return node;
+}
+
+function openBranch(g, id, scroll) {
+  const b = g.branches.find((x) => x.id === id);
+  const panel = $("branch-panel");
+  if (!b || !panel) return;
+  dropPanelCharts();
+  document.querySelectorAll("button.branch-link").forEach((btn) =>
+    btn.setAttribute("aria-pressed", String(btn.dataset.branch === id)));
+  let built;
+  try {
+    built = branchPanel(g, b);
+  } catch (err) {
+    console.error("branch failed:", err);
+    built = { node: el("p", { class: "unavailable" }, SECTION_ERROR), draw: () => {} };
+  }
+  panel.replaceChildren(built.node);
+  panel.hidden = false;
+  const params = new URLSearchParams(location.search);
+  params.set("b", id);
+  history.replaceState(null, "", "?" + params.toString());
+  requestAnimationFrame(() => {
+    try {
+      built.draw();
+    } catch (err) {
+      console.error("charts failed:", err);
+    }
+    if (scroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function closeBranch() {
+  dropPanelCharts();
+  const panel = $("branch-panel");
+  if (panel) { panel.hidden = true; panel.replaceChildren(); }
+  document.querySelectorAll("button.branch-link").forEach((btn) => btn.setAttribute("aria-pressed", "false"));
+  const params = new URLSearchParams(location.search);
+  params.delete("b");
+  history.replaceState(null, "", "?" + params.toString());
+}
+
+function branchSentence(g, b) {
+  const year = lastOf(g.years);
+  const parts = [`In ${year}, ${b.name} brought ${pct(b.revenue_share)} of ${g.name}'s revenue`];
+  if (isNum(b.profit_share)) parts[0] += ` and ${pct(b.profit_share)} of its ${g.profit_label.toLowerCase()}`;
+  parts[0] += ".";
+  if (isNum(b.growth)) {
+    parts.push(`Revenue ${b.growth >= 0 ? "grew" : "fell"} ${pct(Math.abs(b.growth))} on the year.`);
+  }
+  if (isNum(b.cagr) && g.years.length > 2) {
+    parts.push(`Since ${g.years[0]} it has ${b.cagr >= 0 ? "grown" : "shrunk"} ${pct(Math.abs(b.cagr))} a year on average.`);
+  }
+  const m = lastOf(b.margin);
+  const gm = lastOf(g.total.margin);
+  if (isNum(m)) {
+    parts.push(`Its margin was ${pct(m)}${isNum(gm) ? `, against ${pct(gm)} for the whole group` : ""}.`);
+  }
+  return parts.join(" ");
+}
+
+function brandChip(x) {
+  if (!x.ticker) return el("li", { class: "chip" }, x.name);
+  const a = el("a", { href: "?t=" + encodeURIComponent(x.ticker), class: "chip listed" },
+    x.name, el("span", {}, x.ticker));
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    input.value = x.name;
+    window.scrollTo({ top: 0 });
+    loadAnalysis(x.ticker);
+  });
+  return el("li", {}, a);
+}
+
+function comparableRow(c) {
+  const a = el("a", { href: "?t=" + encodeURIComponent(c.ticker), class: "comp-name", title: c.name }, c.name);
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    input.value = c.name;
+    window.scrollTo({ top: 0 });
+    loadAnalysis(c.ticker);
+  });
+  return { cells: [a, c.ticker, compact(c.market_cap), mult(c.ev_ebitda), mult(c.ev_sales), mult(c.pe)] };
+}
+
+function branchPanel(g, b) {
+  const ccy = g.currency;
+  const years = g.years.map((y, i) => ({
+    fiscal_year: y.replace(/^FY/, ""),
+    revenue: isNum(b.revenue[i]) ? b.revenue[i] * 1e6 : null,
+    margin: b.margin[i],
+  }));
+  const yearHead = ["", ...g.years];
+  const figures = table(`Millions of ${ccy}`, yearHead, [
+    { cells: ["Revenue", ...b.revenue.map((v) => num(v, 0))] },
+    { cells: [g.profit_label, ...b.operating_profit.map((v) => num(v, 0))] },
+    { cells: ["Margin", ...b.margin.map((v) => pct(v))] },
+    { cells: ["Group margin", ...g.total.margin.map((v) => pct(v))], cls: "muted-row" },
+  ]);
+  const hasChart = typeof Chart !== "undefined";
+  const boxes = hasChart ? [
+    chartBox(`Revenue (${ccy})`, "bar", years, "revenue", (v) => compact(v)),
+    chartBox("Margin", "line", years, "margin", (v) => pct(v)),
+  ] : [];
+  const listed = b.brands.filter((x) => x.ticker).length;
+  const brands = b.brands.length ? [
+    el("h4", {}, "Companies and brands in this branch"),
+    el("ul", { class: "chips" }, ...b.brands.map(brandChip)),
+    el("p", { class: "note" }, listed
+      ? "A name with a ticker is listed on its own: open it for its full analysis. The others publish no accounts of their own; their figures are inside the branch."
+      : "None of these is listed on its own, so none publishes separate accounts: their figures are inside the branch figures above."),
+  ] : [];
+  const comps = b.comparables.length ? [
+    el("h4", {}, "Listed companies in the same business"),
+    table("Multiples from the weekly peer table; n/a when the company is not in it.",
+      ["Company", "Ticker", "Market cap", "EV/EBITDA", "EV/Sales", "P/E"],
+      b.comparables.map(comparableRow)),
+  ] : [];
+  const close = el("button", { type: "button", class: "branch-close" }, "Close");
+  close.addEventListener("click", closeBranch);
+  const node = el("div", {},
+    el("div", { class: "branch-head" }, el("h3", {}, b.name), close),
+    el("p", { class: "sentence" }, branchSentence(g, b)),
+    el("dl", { class: "kpis" },
+      kpi(`Revenue ${lastOf(g.years)}`, mn(lastOf(b.revenue), ccy)),
+      kpi("Growth on the year", signedPct(b.growth)),
+      kpi("Margin", pct(lastOf(b.margin))),
+      kpi("Share of group revenue", pct(b.revenue_share))),
+    boxes.length ? el("div", { class: "charts" }, ...boxes.map((x) => x.node)) : null,
+    figures, ...brands, ...comps);
+  const draw = () => {
+    const before = charts.length;
+    boxes.forEach((x) => x.draw());
+    panelCharts = charts.slice(before);
+  };
+  return { node, draw };
+}
+
 // ---------- boot ----------
 
 $("footer").replaceChildren("Data: Yahoo Finance via yfinance. ",
@@ -731,7 +945,7 @@ if (initial === null && query) {
   const ticker = initial.trim().toUpperCase();
   if (TICKER_RE.test(ticker)) {
     input.value = ticker;
-    loadAnalysis(ticker);
+    loadAnalysis(ticker, undefined, (params.get("b") || "").slice(0, 80));
   } else {
     setStatus("The ticker in this link is not valid.", true);
   }

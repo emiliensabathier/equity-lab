@@ -1,0 +1,196 @@
+{
+ "ticker": "MSFT",
+ "name": "Microsoft",
+ "currency": "USD",
+ "years": [
+  "FY2024",
+  "FY2025",
+  "FY2026"
+ ],
+ "year_ends": [
+  "2024-06-30",
+  "2025-06-30",
+  "2026-06-30"
+ ],
+ "profit_label": "Operating income",
+ "segment_basis": "reportable segments",
+ "sources": [
+  {
+   "title": "Microsoft FY2026 Form 10-K (Note 18, Segment Information and Geographic Data)",
+   "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+  },
+  {
+   "title": "Microsoft FY2025 Form 10-K (cross-check of restated FY2024/FY2025)",
+   "url": "https://www.sec.gov/Archives/edgar/data/789019/000095017025100235/msft-20250630.htm"
+  },
+  {
+   "title": "Microsoft FY2024 Form 10-K (pre-recast FY2024 presentation)",
+   "url": "https://www.sec.gov/Archives/edgar/data/789019/000095017024087843/msft-20240630.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   245122,
+   281724,
+   331839
+  ],
+  "operating_profit": [
+   109433,
+   128528,
+   155237
+  ]
+ },
+ "branches": [
+  {
+   "name": "Productivity and Business Processes",
+   "revenue": [
+    106820,
+    120810,
+    139996
+   ],
+   "operating_profit": [
+    59661,
+    69773,
+    83879
+   ],
+   "brands": [
+    "Microsoft 365 Commercial",
+    "Microsoft 365 Copilot",
+    "Microsoft Teams",
+    "Exchange",
+    "SharePoint",
+    "Power BI",
+    "Enterprise Mobility + Security",
+    "Windows Commercial",
+    "Microsoft 365 Consumer",
+    "LinkedIn",
+    "Dynamics 365",
+    "Power Apps"
+   ],
+   "comparables": [
+    {
+     "ticker": "CRM",
+     "name": "Salesforce, Inc."
+    },
+    {
+     "ticker": "SAP.DE",
+     "name": "SAP SE"
+    },
+    {
+     "ticker": "ADBE",
+     "name": "Adobe Inc."
+    },
+    {
+     "ticker": "WDAY",
+     "name": "Workday, Inc."
+    },
+    {
+     "ticker": "ORCL",
+     "name": "Oracle Corporation"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Intelligent Cloud",
+   "revenue": [
+    87464,
+    106265,
+    137791
+   ],
+   "operating_profit": [
+    37813,
+    44589,
+    56972
+   ],
+   "brands": [
+    "Azure",
+    "GitHub",
+    "SQL Server",
+    "Windows Server",
+    "Visual Studio",
+    "System Center",
+    "Health and Life Sciences cloud (formerly Nuance)",
+    "Enterprise Support Services",
+    "Industry Solutions",
+    "Microsoft Partner Network"
+   ],
+   "comparables": [
+    {
+     "ticker": "AMZN",
+     "name": "Amazon.com, Inc."
+    },
+    {
+     "ticker": "ORCL",
+     "name": "Oracle Corporation"
+    },
+    {
+     "ticker": "GOOGL",
+     "name": "Alphabet Inc."
+    },
+    {
+     "ticker": "SNOW",
+     "name": "Snowflake Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "More Personal Computing",
+   "revenue": [
+    50838,
+    54649,
+    54052
+   ],
+   "operating_profit": [
+    11959,
+    14166,
+    14386
+   ],
+   "brands": [
+    "Windows (OEM)",
+    "Surface",
+    "XBOX",
+    "XBOX Game Pass",
+    "XBOX Cloud Gaming",
+    "Bing",
+    "Copilot",
+    "Microsoft News",
+    "Microsoft Edge"
+   ],
+   "comparables": [
+    {
+     "ticker": "AAPL",
+     "name": "Apple Inc."
+    },
+    {
+     "ticker": "HPQ",
+     "name": "HP Inc."
+    },
+    {
+     "ticker": "DELL",
+     "name": "Dell Technologies Inc."
+    },
+    {
+     "ticker": "EA",
+     "name": "Electronic Arts Inc."
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Corporate / unallocated (none: all revenue and costs allocated to segments)",
+  "revenue": [
+   0,
+   0,
+   0
+  ],
+  "operating_profit": [
+   0,
+   0,
+   0
+  ]
+ },
+ "notes": "FY2026 10-K filed 2026-07-29; all three years taken from its Note 18. Restatement: Microsoft recast its segments in August 2024 (Microsoft 365 Commercial incl. Windows Commercial moved into Productivity and Business Processes, among other changes). The FY2024 10-K originally reported FY2024 revenue P&BP 77,728 / IC 105,362 / MPC 62,032 and operating income 40,540 / 49,584 / 19,309; restated values used here are 106,820 / 87,464 / 50,838 and 59,661 / 37,813 / 11,959 (totals unchanged at 245,122 and 109,433). FY2024 and FY2025 figures in the FY2026 10-K match those in the FY2025 10-K (no further recast). Microsoft allocates corporate costs to segments, so the 'other' line is zero. In FY2026 some lines were renamed (Gaming -> XBOX, Search and news advertising -> Search advertising, Nuance Healthcare -> Health and Life Sciences cloud). Segment arithmetic checks exactly."
+}

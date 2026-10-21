@@ -1,0 +1,161 @@
+{
+ "ticker": "CFR.SW",
+ "name": "Richemont",
+ "currency": "EUR",
+ "years": [
+  "FY2024",
+  "FY2025",
+  "FY2026"
+ ],
+ "year_ends": [
+  "2024-03-31",
+  "2025-03-31",
+  "2026-03-31"
+ ],
+ "profit_label": "Operating result (segment) / Operating profit (Group)",
+ "segment_basis": "business areas (reportable segments)",
+ "sources": [
+  {
+   "title": "Richemont Annual Report and Accounts 2026 (note 5 Segment information p.17-18; Five-year record pp.80-81) - fetched via Wayback Machine copy (web.archive.org/web/2026id_/...) because richemont.com blocks this server",
+   "url": "https://www.richemont.com/media/045hlucv/richemont-fy26-annual-report-and-accounts.pdf"
+  },
+  {
+   "title": "Richemont FY26 annual results press release, 22 May 2026 (key figures, business areas and Maisons)",
+   "url": "https://www.nasdaq.com/press-release/richemont-delivers-strong-sales-growth-and-solid-results-year-ended-31-march-2026"
+  }
+ ],
+ "total": {
+  "revenue": [
+   20616,
+   21399,
+   22420
+  ],
+  "operating_profit": [
+   4794,
+   4467,
+   4492
+  ]
+ },
+ "branches": [
+  {
+   "name": "Jewellery Maisons",
+   "revenue": [
+    14242,
+    15328,
+    16539
+   ],
+   "operating_profit": [
+    4713,
+    4896,
+    5037
+   ],
+   "brands": [
+    "Buccellati",
+    "Cartier",
+    "Van Cleef & Arpels",
+    "Vhernier"
+   ],
+   "comparables": [
+    {
+     "ticker": "PNDORA.CO",
+     "name": "Pandora A/S"
+    },
+    {
+     "ticker": "MC.PA",
+     "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+    },
+    {
+     "ticker": "SIG",
+     "name": "Signet Jewelers Limited"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Specialist Watchmakers",
+   "revenue": [
+    3767,
+    3283,
+    3149
+   ],
+   "operating_profit": [
+    572,
+    175,
+    107
+   ],
+   "brands": [
+    "A. Lange & Söhne",
+    "Baume & Mercier",
+    "IWC Schaffhausen",
+    "Jaeger-LeCoultre",
+    "Panerai",
+    "Piaget",
+    "Roger Dubuis",
+    "Vacheron Constantin"
+   ],
+   "comparables": [
+    {
+     "ticker": "UHR.SW",
+     "name": "SWATCH GROUP I"
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Other",
+   "revenue": [
+    2607,
+    2788,
+    2732
+   ],
+   "operating_profit": [
+    -43,
+    -102,
+    -96
+   ],
+   "brands": [
+    "Alaïa",
+    "Chloé",
+    "Delvaux",
+    "dunhill",
+    "G/FORE",
+    "Gianvito Rossi",
+    "Montblanc",
+    "Peter Millar",
+    "Purdey",
+    "Serapian",
+    "TimeVallée",
+    "Watchfinder & Co."
+   ],
+   "comparables": [
+    {
+     "ticker": "KER.PA",
+     "name": "Kering SA"
+    },
+    {
+     "ticker": "BRBY.L",
+     "name": "Burberry Group plc"
+    },
+    {
+     "ticker": "MONC.MI",
+     "name": "Moncler S.p.A."
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Corporate costs and valuation adjustments on acquisitions",
+  "revenue": [
+   0,
+   0,
+   0
+  ],
+  "operating_profit": [
+   -448,
+   -502,
+   -556
+  ]
+ },
+ "notes": "All three years taken from the FY2026 Annual Report (segment note for FY2025-FY2026, five-year record for FY2024; the FY2025 figures agree in both). Continuing operations only: YNAP (online distributors) is presented as discontinued operations; the five-year record says only FY2022 was re-presented, so FY2024 is on the same basis. 'Other' is a reported business area (mainly Fashion & Accessories Maisons), kept as a segment. The other line is computed as unallocated corporate costs (-417 / -453 / -517) plus impact of valuation adjustments on acquisitions (-31 / -49 / -39); both items are published separately. FY2026 corporate costs include EUR 134m net one-off charges (impairments and a write-down linked to the agreed sale of Baume & Mercier to the Damiani Group, closing expected summer 2026). Group operating profit FY2026 includes EUR 164m of non-recurring costs. The 'Other' brands come from the press release ('About Richemont'); the segment note also lists Watchfinder, investment property companies and other manufacturing entities in Other. Segment revenue has no intersegment eliminations (segment sales sum to Group sales)."
+}

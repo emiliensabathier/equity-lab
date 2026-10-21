@@ -1,0 +1,218 @@
+{
+ "ticker": "ULVR.L",
+ "name": "Unilever",
+ "currency": "EUR",
+ "years": [
+  "FY2023",
+  "FY2024",
+  "FY2025"
+ ],
+ "year_ends": [
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31"
+ ],
+ "profit_label": "Underlying operating profit",
+ "segment_basis": "business groups",
+ "sources": [
+  {
+   "title": "Unilever Annual Report on Form 20-F 2025 (SEC EDGAR, filed 12 Mar 2026), note 2 Segment information and Business Group pages (Power Brands)",
+   "url": "https://www.sec.gov/Archives/edgar/data/217410/000021741026000007/ul-20251231.htm"
+  }
+ ],
+ "total": {
+  "revenue": [
+   51680,
+   52479,
+   50503
+  ],
+  "operating_profit": [
+   9079,
+   10198,
+   10084
+  ]
+ },
+ "branches": [
+  {
+   "name": "Beauty & Wellbeing",
+   "revenue": [
+    12466,
+    13157,
+    12848
+   ],
+   "operating_profit": [
+    2331,
+    2552,
+    2471
+   ],
+   "brands": [
+    "Dove",
+    "Vaseline",
+    "Sunsilk",
+    "Clear",
+    "TRESemmé",
+    "Pond's",
+    "Nexxus",
+    "Dermalogica",
+    "Hourglass",
+    "K18",
+    "Paula's Choice",
+    "Liquid I.V.",
+    "Nutrafol",
+    "OLLY"
+   ],
+   "comparables": [
+    {
+     "ticker": "OR.PA",
+     "name": "L'Oréal S.A."
+    },
+    {
+     "ticker": "EL",
+     "name": "The Estée Lauder Companies Inc."
+    },
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    },
+    {
+     "ticker": "PUIG.MC",
+     "name": "Puig Brands, S.A."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Personal Care",
+   "revenue": [
+    13829,
+    13618,
+    13161
+   ],
+   "operating_profit": [
+    2792,
+    3014,
+    2973
+   ],
+   "brands": [
+    "Dove",
+    "Axe",
+    "Rexona",
+    "Lifebuoy",
+    "Lux",
+    "Closeup",
+    "Pepsodent"
+   ],
+   "comparables": [
+    {
+     "ticker": "PG",
+     "name": "The Procter & Gamble Company"
+    },
+    {
+     "ticker": "CL",
+     "name": "Colgate-Palmolive Company"
+    },
+    {
+     "ticker": "BEI.DE",
+     "name": "Beiersdorf Aktiengesellschaft"
+    },
+    {
+     "ticker": "KVUE",
+     "name": "Kenvue Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Home Care",
+   "revenue": [
+    12181,
+    12352,
+    11565
+   ],
+   "operating_profit": [
+    1496,
+    1785,
+    1718
+   ],
+   "brands": [
+    "Dirt Is Good",
+    "Comfort",
+    "Surf",
+    "Sunlight",
+    "Cif",
+    "Domestos",
+    "Radiant"
+   ],
+   "comparables": [
+    {
+     "ticker": "HEN3.DE",
+     "name": "Henkel AG & Co. KGaA"
+    },
+    {
+     "ticker": "RKT.L",
+     "name": "Reckitt Benckiser Group plc"
+    },
+    {
+     "ticker": "CLX",
+     "name": "The Clorox Company"
+    },
+    {
+     "ticker": "CHD",
+     "name": "Church & Dwight Co., Inc."
+    }
+   ],
+   "listed": []
+  },
+  {
+   "name": "Foods",
+   "revenue": [
+    13204,
+    13352,
+    12929
+   ],
+   "operating_profit": [
+    2460,
+    2847,
+    2922
+   ],
+   "brands": [
+    "Knorr",
+    "Hellmann's",
+    "Horlicks"
+   ],
+   "comparables": [
+    {
+     "ticker": "NESN.SW",
+     "name": "Nestlé S.A."
+    },
+    {
+     "ticker": "KHC",
+     "name": "The Kraft Heinz Company"
+    },
+    {
+     "ticker": "GIS",
+     "name": "General Mills, Inc."
+    },
+    {
+     "ticker": "BN.PA",
+     "name": "Danone S.A."
+    }
+   ],
+   "listed": []
+  }
+ ],
+ "other": {
+  "name": "Unallocated (none: all turnover and underlying operating profit are allocated to the four Business Groups)",
+  "revenue": [
+   0,
+   0,
+   0
+  ],
+  "operating_profit": [
+   0,
+   0,
+   0
+  ]
+ },
+ "notes": "All three years from the 2025 Form 20-F (same content as the Annual Report and Accounts 2025). 2024 and 2023 are RESTATED to reflect the demerger of the Ice Cream business (The Magnum Ice Cream Company, completed 6 December 2025), which is now presented as discontinued operations; figures therefore differ from those originally published (e.g. originally reported 2023/2024 group turnover included Ice Cream). Foods was previously reported as 'Nutrition'. Turnover = revenue. Underlying operating profit is Unilever's segment profit measure (operating profit before non-underlying items); reported operating profit was 8,998 / 8,829 / 9,037 for 2023/2024/2025. Unilever allocates everything to the Business Groups, so the 'other' line is zero and the segments sum exactly to the totals. Brands are the 'Power Brands' Unilever lists for each Business Group in the 2025 report (Dove appears in both Beauty & Wellbeing and Personal Care). unilever.com PDFs (results announcement, Annual Report PDF) were blocked to this server; the SEC copy of the annual report was used instead."
+}
