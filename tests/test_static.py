@@ -123,3 +123,10 @@ def test_charts_follow_a_theme_change():
     assert "function recolourCharts()" in js
     assert 'attributeFilter: ["data-theme"]' in js
     assert '(prefers-color-scheme: dark)' in js
+
+
+def test_q_link_searches_like_enter():
+    # The home page's search form sends ?q=<typed text>: the page searches as Enter would.
+    js = (STATIC / "app.js").read_text("utf-8")
+    assert re.search(r'params\.get\("q"\)', js)
+    assert re.search(r"runSearch\(query, true\)", js)

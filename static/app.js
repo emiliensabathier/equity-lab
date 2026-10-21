@@ -713,8 +713,15 @@ $("footer").replaceChildren("Data: Yahoo Finance via yfinance. ",
   el("a", { href: REPO_URL, rel: "noopener" }, "equity-lab on GitHub"), ", ",
   el("a", { href: VLAB_URL, rel: "noopener" }, "valuation-lab"));
 
-const initial = new URLSearchParams(location.search).get("t");
-if (initial !== null) {
+const params = new URLSearchParams(location.search);
+const initial = params.get("t");
+const query = (params.get("q") || "").trim().slice(0, 100);
+if (initial === null && query) {
+  // Sent by the search form on emiliensabathier.fr: search as Enter would.
+  input.value = query;
+  if (query.length >= MIN_QUERY) runSearch(query, true);
+  else tryAsTicker(query);
+} else if (initial !== null) {
   const ticker = initial.trim().toUpperCase();
   if (TICKER_RE.test(ticker)) {
     input.value = ticker;
