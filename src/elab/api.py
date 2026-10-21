@@ -24,6 +24,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from elab import config
+from elab.brands import brand_matches
 from elab.cache import Cache
 from elab.engine import Fetchers, analyze
 from elab.narrative import NarrativeWorker
@@ -191,7 +192,7 @@ def create_app(
         if cached is not None:
             return cached
         try:
-            found = [asdict(m) for m in search(q, searcher, local_names)]
+            found = [asdict(m) for m in search(q, searcher, local_names, brand_matches)]
         except Exception:
             log.exception("search failed")
             raise HTTPException(503, "Search is unavailable, try again in a minute.") from None

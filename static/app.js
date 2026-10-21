@@ -146,6 +146,12 @@ function highlight(i) {
   else input.removeAttribute("aria-activedescendant");
 }
 
+// "owner of Zara · ITX.MC" when a brand was typed; the exchange only when Yahoo gave one.
+function matchMeta(m) {
+  const where = m.exchange ? `${m.ticker}, ${m.exchange}` : m.ticker;
+  return m.brand ? `owner of ${m.brand} · ${where}` : where;
+}
+
 function showMatches(found, q) {
   closeList();
   if (!found.length) return;
@@ -154,7 +160,7 @@ function showMatches(found, q) {
   found.forEach((m, i) => {
     const li = el("li", { role: "option", id: "m" + i, "aria-selected": "false" },
       el("span", { class: "m-name" }, m.name),
-      el("span", { class: "m-meta" }, `${m.ticker}, ${m.exchange}`));
+      el("span", { class: "m-meta" }, matchMeta(m)));
     li.addEventListener("mousedown", (e) => { e.preventDefault(); choose(i); });
     list.append(li);
   });

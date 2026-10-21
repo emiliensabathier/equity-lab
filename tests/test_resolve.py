@@ -190,3 +190,29 @@ def test_local_peer_names_reads_table_and_tolerates_missing_file(tmp_path):
         tmp_path / "peers.parquet"
     )
     assert local_peer_names(tmp_path)() == [("TTE.PA", "TotalEnergies SE")]
+
+
+def test_search_puts_the_owner_of_a_brand_first():
+    brands = lambda q: [("ITX.MC", "Inditex", "Zara")]  # noqa: E731
+    quotes = [_quote("ZARA.NE", "NEO"), _quote("ITX.MC", "MCE")]
+    got = search("zara", lambda q: quotes, brands=brands)
+    assert got == [Match("ITX.MC", "Inditex", "", brand="Zara")]
+
+
+def test_search_does_not_repeat_the_parent_name_as_its_brand():
+    got = search("inditex", lambda q: [], brands=lambda q: [("ITX.MC", "Inditex", "Inditex")])
+    assert got == [Match("ITX.MC", "Inditex", "")]
+
+
+def test_search_follows_brand_owners_with_yahoo_then_local_rows():
+    brands = lambda q: [("KO", "Coca-Cola", "Coke")]  # noqa: E731
+    got = search("coke", lambda q: [_quote("COKE", "NMS")], lambda: [("CCH.L", "Coke HBC")],
+                 brands=brands)
+    assert [m.ticker for m in got] == ["KO", "COKE", "CCH.L"]
+
+
+def test_brands_the_query_only_begins_follow_yahoo():
+    brands = lambda q: [("AF.PA", "Air France-KLM", "Air France")]  # noqa: E731
+    got = search("air", lambda q: [_quote("AIR.PA", "PAR")], brands=brands)
+    assert [m.ticker for m in got] == ["AIR.PA", "AF.PA"]
+    assert got[1].brand == "Air France"

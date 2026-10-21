@@ -14,6 +14,7 @@ from pathlib import Path
 from vlab.errors import DataError
 from vlab.universe import Company
 
+from elab.brands import normalize
 from elab.config import (
     EXCLUDED_SECTORS,
     FALLBACK_INDEX,
@@ -42,6 +43,7 @@ class Match:
     ticker: str
     name: str
     exchange: str
+    brand: str = ""  # set when the query named a brand of this company ("Zara" for Inditex)
 
 
 @dataclass(frozen=True)
@@ -97,20 +99,34 @@ def search(
     query: str,
     searcher: Callable[[str], list[dict]] = _yahoo_search,
     local_names: Callable[[], list[tuple[str, str]]] | None = None,
+    brands: Callable[[str], list[tuple[str, str, str]]] | None = None,
 ) -> list[Match]:
     """Listed US or covered-European equities matching a free-text query, at most 8.
 
+    The owner of a brand the query names comes first ("zara" -> Inditex), since Yahoo searches
+    company names only; owners of brands the query merely begins come after Yahoo's answers.
     Yahoo returns few quotes and often only ETFs, so when it yields fewer than 8 covered
-    equities the peer table fills the rest (Yahoo results first).
+    equities the peer table fills the rest.
     """
     query = query.strip()
     if not MIN_QUERY <= len(query) <= MAX_QUERY:
         return []
-    matches: list[Match] = []
+    owners = [
+        Match(ticker, parent, "", "" if normalize(brand) == normalize(parent) else brand)
+        for ticker, parent, brand in (brands(query) if brands is not None else [])
+    ]
+    # A brand typed in full leads; brands the query only begins ("air") follow Yahoo's answers.
+    whole = normalize(query)
+    matches = [m for m in owners if normalize(m.brand or m.name) == whole][:1]
+    later = [m for m in owners if m not in matches]
     for quote in searcher(query):
+        if len(matches) == MAX_MATCHES:
+            break
         symbol = quote.get("symbol") or ""
         exchange = quote.get("exchange") or ""
         if quote.get("quoteType") != "EQUITY" or not symbol:
+            continue
+        if any(m.ticker == symbol for m in matches):
             continue
         suffix = _suffix(symbol) or None
         # The same places direct entry covers: a benchmarked suffix or the STOXX 600 fallback.
@@ -120,8 +136,9 @@ def search(
             continue
         name = quote.get("longname") or quote.get("shortname") or symbol
         matches.append(Match(symbol, name, exchange))
-        if len(matches) == MAX_MATCHES:
-            break
+    matches.extend([m for m in later if all(m.ticker != n.ticker for n in matches)][
+        : MAX_MATCHES - len(matches)
+    ])
     if len(matches) < MAX_MATCHES and local_names is not None:
         seen = {m.ticker for m in matches}
         extra = [m for m in _local_matches(query, local_names()) if m.ticker not in seen]

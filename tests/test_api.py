@@ -235,7 +235,12 @@ def test_narrative_polling_pending_job_is_not_counted_but_new_jobs_are(env):
 
 def test_search_returns_matches(env):
     res = env["client"].get("/api/search", params={"q": "acme"})
-    assert res.json() == [{"ticker": "ACME", "name": "Acme Inc", "exchange": "NMS"}]
+    assert res.json() == [{"ticker": "ACME", "name": "Acme Inc", "exchange": "NMS", "brand": ""}]
+
+
+def test_search_names_the_company_that_owns_a_brand(env):
+    res = env["client"].get("/api/search", params={"q": "Zara"})
+    assert res.json()[0] == {"ticker": "ITX.MC", "name": "Inditex", "exchange": "", "brand": "Zara"}
 
 
 def test_search_results_are_cached_for_ten_minutes_by_normalized_query(env):
